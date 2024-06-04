@@ -21,11 +21,7 @@ For a comprehensive understanding of the principles and techniques used in this 
 
 ## Project Structure
 
-- **src/**: Contains the source code for the project.
-- **data/**: Includes datasets used for training and evaluation.
-- **models/**: Pretrained models and architectures.
-- **notebooks/**: Jupyter notebooks for experiments and visualizations.
-- **docs/**: Documentation and references.
+ === TBD ===
 
 ## Installation
 
@@ -33,4 +29,4 @@ To set up the project, follow these steps:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/yourproject.git
+   git clone https://github.com/PietroDrd/RL_Dog.git
