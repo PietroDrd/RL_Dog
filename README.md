@@ -7,7 +7,7 @@ Project initiated by Pietro Dardano, advised by prof. A. Del Prete - UniTn - Sum
 
 Our methodology integrates several advanced technologies and approaches:
 
-- **Proximal Policy Optimization (PPO)** and **Combined Actor-Critic (CAT)**: For detailed information on these methods, refer to the [research paper](https://arxiv.org/pdf/2403.18765).
+- **Proximal Policy Optimization (PPO)** and **Constraints as Terminations (CAT)**: For detailed information on these methods, refer to the [research paper](https://arxiv.org/pdf/2403.18765).
 - **Architecture Inspired by ANYmal (ETH-RSL)**: We modeled our architecture based on the principles outlined in the [ANYmal paper](https://www.science.org/doi/epdf/10.1126/scirobotics.aau5872).
 - **SKRL**: We utilized the SKRL library to streamline our reinforcement learning implementations. More details can be found in the SKRL [documentation](https://skrl.readthedocs.io/en/latest/intro/getting_started.html).
 - **ISAAC GYM**: NVIDIA's ISAAC GYM provided the high-performance simulation environment necessary for training our models. Refer to the ISAAC GYM [paper](https://arxiv.org/abs/2108.10470) for more information.
