@@ -27,7 +27,8 @@ For a comprehensive understanding of the principles and techniques used in this 
 ## Installation
 
 To set up the project, follow these steps:
-
+1. Setup your OS and Environment
+    Instructions in the file: [Setup_Guide](https://github.com/PietroDrd/RL_Dog/blob/main/SETUP_GUIDE.md)
 1. Clone the repository:
    ```bash
    git clone https://github.com/PietroDrd/RL_Dog.git
