@@ -34,7 +34,9 @@ After installing, initialize your newly-installed Miniconda. The following comma
 ```
 
 ## Install Fuse
-> sudo apt install -y fuse 
+```
+sudo apt install -y fuse 
+```
 
 ## INSTALL ISAAC SIM [DOC](https://docs.omniverse.nvidia.com/isaacsim/latest/index.html)
 
@@ -81,14 +83,20 @@ conda install anaconda-navigator
 ## ISAAC LAB CONFIGURATIONS
 
 Isaac Sim root directory
->export ISAACSIM_PATH="${HOME}/.local/share/ov/pkg/isaac-sim-4.0.0"
+```
+export ISAACSIM_PATH="${HOME}/.local/share/ov/pkg/isaac-sim-4.0.0"
+```
 
 Isaac Sim python executable
->export ISAACSIM_PYTHON_EXE="${ISAACSIM_PATH}/python.sh"
+```
+export ISAACSIM_PYTHON_EXE="${ISAACSIM_PATH}/python.sh"
+```
 
 Check that the simulator runs as expected:
 
->${ISAACSIM_PATH}/isaac-sim.sh
+```
+${ISAACSIM_PATH}/isaac-sim.sh
+```
 
 <br>
 
