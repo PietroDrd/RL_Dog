@@ -1,5 +1,5 @@
 # RL_Dog 
-Reinforced-Learning for Walk and Falls Recover of autonomous Legged Robot (AlienGO by Unitree)
+Reinforced-Learning for walk of autonomous Legged Robot (AlienGO by Unitree)
 
 Project initiated by Pietro Dardano, advised by prof. [A. Del Prete](https://andreadelprete.github.io/) - UniTn - Summer 2024
 
@@ -10,7 +10,7 @@ Our methodology integrates several advanced technologies and approaches:
 - **Proximal Policy Optimization (PPO)** and **Constraints as Terminations (CAT)**: For detailed information on these methods, refer to the [research paper](https://arxiv.org/pdf/2403.18765).
 - **Architecture Inspired by ANYmal (ETH-RSL)**: We modeled our architecture based on the principles outlined in the [ANYmal paper](https://www.science.org/doi/epdf/10.1126/scirobotics.aau5872).
 - **SKRL**: We utilized the SKRL library to streamline our reinforcement learning implementations. More details can be found in the SKRL [documentation](https://skrl.readthedocs.io/en/latest/intro/getting_started.html).
-- **Isaac Lab**: NVIDIA's Isaac Lab provided the high-performance simulation environment necessary for training our models. Refer to the [Orbit](https://isaac-orbit.github.io/) and [Isaac Sim](https://isaac-sim.github.io/IsaacLab/) pages for more information.
+- **Isaac Lab**: NVIDIA's [Isaac Lab](https://isaac-sim.github.io/IsaacLab/) provided the high-performance simulation environment necessary for training our models. Refer to the [Orbit](https://isaac-orbit.github.io/) and [Isaac Sim](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html) pages for more information.
 
 - **Python + PyTorch**: Our primary programming languages and framework for development and deep learning.
 
@@ -30,5 +30,15 @@ To set up the project, follow these steps:
 1. Setup your OS and Environment
     Instructions in the file: [Setup_Guide](https://github.com/PietroDrd/RL_Dog/blob/main/SETUP_GUIDE.md)
 1. Clone the repository:
-   ```bash
+   ```
    git clone https://github.com/PietroDrd/RL_Dog.git
+   ```
+
+## (Not-yet Implemented) [DockerFiles for SimContainer](https://github.com/NVIDIA-Omniverse/IsaacSim-dockerfiles)
+
+### Pre-Requisites
+
+Before getting started, ensure that the system has the latest [NVIDIA Driver](https://www.nvidia.com/en-us/drivers/unix/) and the [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-docker) installed.
+
+Use your [NGC Account](https://docs.nvidia.com/ngc/ngc-overview/index.html#registering-activating-ngc-account) to get access to the [Isaac Sim Container](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/isaac-sim) and generate your [NGC API Key](https://docs.nvidia.com/ngc/ngc-overview/index.html#generating-api-key).
+
