@@ -77,7 +77,7 @@ sudo apt install cmake build-essential
 
 Other Conda installations (now  that "isaacenv" is active)
 ```
-conda install pytorch==1.2.2 cudatoolkit=11.8 -c pytorch
+conda install pytorch==2.2.2 cudatoolkit=11.8 -c pytorch
 conda install anaconda-navigator
 ```
 ## ISAAC LAB CONFIGURATIONS
