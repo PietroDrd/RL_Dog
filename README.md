@@ -10,8 +10,10 @@ Our methodology integrates several advanced technologies and approaches:
 - **Proximal Policy Optimization (PPO)** and **Constraints as Terminations (CAT)**: For detailed information on these methods, refer to the [research paper](https://arxiv.org/pdf/2403.18765).
 - **Architecture Inspired by ANYmal (ETH-RSL)**: We modeled our architecture based on the principles outlined in the [ANYmal paper](https://www.science.org/doi/epdf/10.1126/scirobotics.aau5872).
 - **SKRL**: We utilized the SKRL library to streamline our reinforcement learning implementations. More details can be found in the SKRL [documentation](https://skrl.readthedocs.io/en/latest/intro/getting_started.html).
-- **Isaac Lab**: NVIDIA's [Isaac Lab](https://isaac-sim.github.io/IsaacLab/) provided the high-performance simulation environment necessary for training our models. Refer to the [Orbit](https://isaac-orbit.github.io/) and [Isaac Sim](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html) pages for more information.
-
+- **Isaac Lab**: NVIDIA's [Isaac Lab](https://isaac-sim.github.io/IsaacLab/) provided the high-performance simulation environment necessary for training our models. Refer to the [Orbit](https://isaac-orbit.github.io/) and [Isaac Sim](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html) pages for more information. <br>
+  - **!! Install it only on powerfull Workbenches !!**: Unfortunatelly IsaacSim requires a good setup and an important amount of computational power; only few laptops (not mine) can widstand to those specifications!
+- **OpenAI Gymnasium**: Since Isaac Sim is almost not suitable for being installed on **laptops**, I opted for the lightweight Gymnasium as a simulation environment. It supports Python 3.10 and Ubuntu 22.04 and it's well documented. Obviously, it is far from a realistic simulation, as Isaac Sim is, but for quick tests and trainings, I consider it a good trade-off considering my hardware limitations. For more details on Gymnasium, visit the [official documentation](https://gymnasium.farama.org/).
+- `Why not Isaac Gym?`: It requires Ubuntu 20.04 or earlier and Python 3.8 or 3.9. Having installed Ubuntu 22.04, I excluded this option.
 - **Python + PyTorch**: Our primary programming languages and framework for development and deep learning.
 
 ## Understanding the Project
@@ -28,7 +30,7 @@ For a comprehensive understanding of the principles and techniques used in this 
 
 To set up the project, follow these steps:
 1. Setup your OS and Environment
-    Instructions in the file: [Setup_Guide](https://github.com/PietroDrd/RL_Dog/blob/main/SETUP_GUIDE.md)
+    Instructions in the file: [IsaacSim-Setup_Guide](https://github.com/PietroDrd/RL_Dog/blob/main/SETUP_GUIDE.md) or TODO_Gymnasium-Setup_Guide
 1. Clone the repository:
    ```
    git clone https://github.com/PietroDrd/RL_Dog.git
