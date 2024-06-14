@@ -1,0 +1,17 @@
+name: RL_Dog
+channels:
+  - pytorch
+  - conda
+  - defaults
+dependencies:
+  - gym=0.26.2
+  - gymnasium=0.29.1
+  - python=3.10
+  - pytorch=2.3.0
+  - cudatoolkit=12.4
+  - numpy=1.26.4
+  - pyyaml>=6.0.1
+  - scipy>=1.26.4
+  - pybind11 # conda install -c conda-forge pybind11
+  - scipy # conda install scipy
+  - pip=24.0
