@@ -9,7 +9,7 @@ def main():
     observation, info = env.reset(seed=42)
 
     done = False
-    total_reward = 0
+    total_reward = -100
 
     plt.ion()  # Turn on interactive mode for plotting
     fig, ax = plt.subplots()
