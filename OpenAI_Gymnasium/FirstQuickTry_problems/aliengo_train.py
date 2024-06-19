@@ -5,7 +5,7 @@ from skrl.memories.torch import Memory
 from skrl.models.torch import Model
 from skrl.trainers.torch import SequentialTrainer
 from skrl.envs.wrappers.torch import GymWrapper
-from aliengo_env import AlienGoEnv, myGPU
+from environment.aliengo_env import AlienGoEnv, myGPU
 
 # Define the PPO model
 class Policy(Model):

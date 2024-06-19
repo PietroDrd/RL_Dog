@@ -2,7 +2,7 @@ import gymnasium as gym
 import torch
 from skrl.agents.torch import PPO
 from skrl.envs.wrappers.torch import GymWrapper
-from aliengo_env import AlienGoEnv
+from environment.aliengo_env import AlienGoEnv
 
 # Load the trained models
 policy = torch.load("trained_models/policy.pth")
