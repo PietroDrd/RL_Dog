@@ -9,7 +9,7 @@ This script demonstrates how to create a rigid object and interact with it.
 .. code-block:: bash
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/rigid_groups.py 
+    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/2rigid_groups.py 
 """
 
 """Launch Isaac Sim Simulator first."""
@@ -56,7 +56,7 @@ def design_scene():
     cone_cfg = RigidObjectCfg(
         prim_path="/World/Origin.*/Cone",
         spawn=sim_utils.ConeCfg(
-            radius=0.1,
+            radius=0.16,
             height=0.2,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(),
             mass_props=sim_utils.MassPropertiesCfg(mass=1.0),
@@ -75,7 +75,7 @@ def design_scene():
 def run_simulator(sim: sim_utils.SimulationContext, entities: dict[str, RigidObject], origins: torch.Tensor):
     """Runs the simulation loop."""
     # Extract scene entities
-    cone_object = entities["cone"]
+    cone_object = entities["cone"] # entities == {"cone": cone_object = RigidObject(cfg=cone_cfg)}
 
     sim_dt = sim.get_physics_dt()
     sim_time = 0.0
@@ -83,7 +83,8 @@ def run_simulator(sim: sim_utils.SimulationContext, entities: dict[str, RigidObj
 
     # Simulate physics
     while simulation_app.is_running():
-        # reset
+        
+        ### RESET PART ###
         if count % 250 == 0:
             # reset counters
             sim_time = 0.0
@@ -101,14 +102,15 @@ def run_simulator(sim: sim_utils.SimulationContext, entities: dict[str, RigidObj
             cone_object.reset()
             print("----------------------------------------")
             print("[INFO]: Resetting object state...")
-        # apply sim data
+        
+                
+        ### UPDATE THE SIMULATION ###
         cone_object.write_data_to_sim()
-
         sim.step()
         sim_time += sim_dt
         count += 1
-
         cone_object.update(sim_dt)
+
         # print the root position
         if count % 50 == 0:
             print(f"Root position (in world): {cone_object.data.root_state_w[:, :3]}")

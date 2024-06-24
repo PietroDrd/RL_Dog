@@ -77,7 +77,7 @@ def design_scene():
                     COMMAND TO RUN THE SCRIPT 
 cd 
 cd IsaacLab_
-./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/empty_scene.py
+./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/1empty_scene.py
 """
 ####################################################################
 
