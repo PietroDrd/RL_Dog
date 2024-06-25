@@ -9,7 +9,7 @@ This script demonstrates how to create a rigid object and interact with it.
 .. code-block:: bash
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/2rigid_groups.py 
+    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/2rigid_groups.py 
 """
 
 """Launch Isaac Sim Simulator first."""

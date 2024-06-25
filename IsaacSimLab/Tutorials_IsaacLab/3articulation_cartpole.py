@@ -6,7 +6,7 @@
     # Usage
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/3articulation_catpole.py
+    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/3articulation_catpole.py
 
 """
 

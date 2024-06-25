@@ -3,7 +3,7 @@
     # Usage
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/6rlenv.py
+    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/6rlenv.py
 
 
 Launch Isaac Sim Simulator first.

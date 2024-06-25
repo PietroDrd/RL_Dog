@@ -8,7 +8,7 @@ there will be significant overhead in GPU->CPU transfer.
     # Usage
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/8trainrl_sb3.py --task Isaac-Cartpole-vo --num_envs 64 --headless --enable_cameras --video
+    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/8trainrl_sb3.py --task Isaac-Cartpole-vo --num_envs 64 --headless --enable_cameras --video
 
 Launch Isaac Sim Simulator first.
 """

@@ -2,6 +2,13 @@
 # do -->   conda activate isaaclabpip
 #          ctr+shift+p --> select interpreter 
 
+"""
+                    COMMAND TO RUN THE SCRIPT 
+cd 
+cd IsaacLab_
+./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/1empty_scene.py
+"""
+
 import argparse
 from omni.isaac.lab.app import AppLauncher
 
@@ -70,16 +77,6 @@ def design_scene():
     # spawn a usd file of a table into the scene
     cfg = sim_utils.UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd")
     cfg.func("/World/Objects/Table", cfg, translation=(0.0, 0.0, 1.05))
-
-
-####################################################################
-"""
-                    COMMAND TO RUN THE SCRIPT 
-cd 
-cd IsaacLab_
-./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/1empty_scene.py
-"""
-####################################################################
 
 def main():
     sim_cfg = SimulationCfg(dt=0.01, substeps=1)
