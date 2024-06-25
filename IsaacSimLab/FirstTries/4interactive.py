@@ -3,7 +3,6 @@
 .. code-block:: bash
 
     # Usage
-    # Usage
     cd
     cd IsaacLab_
     ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/4create_scene.py --num_envs 32

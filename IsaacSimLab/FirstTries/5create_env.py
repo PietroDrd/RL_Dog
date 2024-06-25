@@ -1,30 +1,28 @@
-# Copyright (c) 2022-2024, The Isaac Lab Project Developers.
-# All rights reserved.
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
 """
 This script demonstrates how to create a simple environment with a cartpole. It combines the concepts of
 scene, action, observation and event managers to create an environment.
-"""
 
-"""Launch Isaac Sim Simulator first."""
+----------------------------------------------------------------------
+
+    # Usage
+    cd
+    cd IsaacLab_
+    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/FirstTries/5create_env.py
+
+-----------------------------------------------------------------------
+
+Launch Isaac Sim Simulator first.
+"""
 
 
 import argparse
 
 from omni.isaac.lab.app import AppLauncher
 
-# add argparse arguments
 parser = argparse.ArgumentParser(description="Tutorial on creating a cartpole base environment.")
 parser.add_argument("--num_envs", type=int, default=16, help="Number of environments to spawn.")
-
-# append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
-# parse the arguments
 args_cli = parser.parse_args()
-
-# launch omniverse app
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
@@ -47,7 +45,6 @@ from omni.isaac.lab_tasks.manager_based.classic.cartpole.cartpole_env_cfg import
 @configclass
 class ActionsCfg:
     """Action specifications for the environment."""
-
     joint_efforts = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["slider_to_cart"], scale=5.0)
 
 
@@ -109,7 +106,7 @@ class EventCfg:
 
 
 @configclass
-class CartpoleEnvCfg(ManagerBasedEnvCfg):
+class CartpoleEnvCfg(ManagerBasedEnvCfg):                   # whole env cfg: obs_cfg + action_cfg + event_cfg
     """Configuration for the cartpole environment."""
 
     # Scene settings
@@ -124,6 +121,7 @@ class CartpoleEnvCfg(ManagerBasedEnvCfg):
         # viewer settings
         self.viewer.eye = [4.5, 0.0, 6.0]
         self.viewer.lookat = [0.0, 0.0, 2.0]
+
         # step settings
         self.decimation = 4  # env step every 4 sim steps: 200Hz / 4 = 50Hz
         # simulation settings
@@ -150,8 +148,8 @@ def main():
                 print("[INFO]: Resetting environment...")
             # sample random actions
             joint_efforts = torch.randn_like(env.action_manager.action)
-            # step the environment
             obs, _ = env.step(joint_efforts)
+
             # print current orientation of pole
             print("[Env 0]: Pole joint: ", obs["policy"][0][1].item())
             # update counter
@@ -162,7 +160,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # run the main function
     main()
-    # close sim app
     simulation_app.close()
