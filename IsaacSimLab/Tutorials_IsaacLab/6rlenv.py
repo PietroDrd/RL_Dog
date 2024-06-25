@@ -41,6 +41,7 @@ from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
 from omni.isaac.lab.scene import InteractiveSceneCfg
 from omni.isaac.lab.utils import configclass
 
+# extensions --> lab_tasks !! not lab not lab_assets
 import omni.isaac.lab_tasks.manager_based.classic.cartpole.mdp as mdp
 
 ##
