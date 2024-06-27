@@ -189,7 +189,6 @@ class TerminationsCfg:
 @configclass
 class CurriculumCfg:
     """Configuration for the curriculum."""
-
     pass
 
 
@@ -203,7 +202,7 @@ class CartpoleEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings
-    scene: CartpoleSceneCfg = CartpoleSceneCfg(num_envs=4096, env_spacing=4.0)
+    scene: CartpoleSceneCfg = CartpoleSceneCfg(num_envs=1028, env_spacing=4.0)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -240,7 +239,7 @@ def main():
     while simulation_app.is_running():
         with torch.inference_mode():
             # reset
-            if count % 300 == 0:
+            if count % 1200 == 0:
                 count = 0
                 env.reset()
                 print("-" * 80)
@@ -250,7 +249,7 @@ def main():
             # step the environment
             obs, rew, terminated, truncated, info = env.step(joint_efforts)
             # print current orientation of pole
-            print("[Env 0]: Pole joint: ", obs["policy"][0][1].item())
+            #print("[Env 0]: Pole joint: ", obs["policy"][0][1].item())
             # update counter
             count += 1
 

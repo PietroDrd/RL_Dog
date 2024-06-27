@@ -4,7 +4,7 @@ scene, action, observation and event managers to create an environment.
 
 ----------------------------------------------------------------------
 
-    # Usage
+    conda activate isaacenv_
     cd
     cd IsaacLab_
     ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/5create_env.py
