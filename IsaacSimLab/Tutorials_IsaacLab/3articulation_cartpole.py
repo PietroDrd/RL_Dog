@@ -3,10 +3,11 @@
 
 .. code-block:: bash
 
-    # Usage
+    conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/3articulation_catpole.py
+    ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/3articulation_cartpole.py
+          /home/rl_sim/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/3articulation_cartpole.py
 
 """
 
@@ -14,6 +15,7 @@
 
 
 import argparse
+import sys
 
 from omni.isaac.lab.app import AppLauncher
 
@@ -37,6 +39,8 @@ from omni.isaac.lab.sim import SimulationContext
 # Pre-defined configs
 ##
 from omni.isaac.lab_assets import CARTPOLE_CFG  # isort:skip
+#from assets.USD_converted.aliengo import aliengo
+from unitree import UNITREE_AlienGo_CFG
 
 
 def design_scene() -> tuple[dict, list[list[float]]]:
@@ -57,12 +61,18 @@ def design_scene() -> tuple[dict, list[list[float]]]:
     prim_utils.create_prim("/World/Origin2", "Xform", translation=origins[1])
 
     # Articulation --> CARTPOLE or robot type (need USD)
-    cartpole_cfg = CARTPOLE_CFG.copy()
-    cartpole_cfg.prim_path = "/World/Origin.*/Robot"
-    cartpole = Articulation(cfg=cartpole_cfg)
+    # cartpole_cfg = CARTPOLE_CFG.copy()
+    # cartpole_cfg.prim_path = "/World/Origin.*/Robot"
+    # cartpole = Articulation(cfg=cartpole_cfg)
+
+    ## AlienGo try
+    robot_cfg = UNITREE_AlienGo_CFG.copy()
+    robot_cfg.prim_path ="/World/Origin.*/Robot"
+    robot = Articulation(cfg=robot_cfg)
+
 
     # return the scene information
-    scene_entities = {"cartpole": cartpole}
+    scene_entities = {"cartpole":robot }
     return scene_entities, origins
 
 

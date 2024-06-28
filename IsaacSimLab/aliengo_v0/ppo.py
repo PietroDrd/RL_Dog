@@ -59,17 +59,19 @@ PPO_DEFAULT_CONFIG = {
 
 def train_ppo(env_, agent=None):
     # Wrap the custom environment
-    wrapped_env = wrap_env(env_)
+    wrapped_env = wrap_env(env_)  # wrap it for SKRL
 
     # Define the model
     models = {}
     models["policy"] = torch.nn.Sequential(
         torch.nn.Linear(wrapped_env.observation_space.shape[0], 256),
         torch.nn.ReLU(),
-        torch.nn.Linear(256, 256),
+        torch.nn.Linear(256, 128),
         torch.nn.ReLU(),
-        torch.nn.Linear(256, wrapped_env.action_space.shape[0])
-    )
+        torch.nn.Linear(128, 64),
+        torch.nn.ReLU(),
+        torch.nn.Linear(64, wrapped_env.action_space.shape[0])
+    ) # original was in,256-->256,256-->256,out
 
     # Preprocessors
     preprocessors = {"observation_scaler": RunningStandardScaler(shape=wrapped_env.observation_space.shape)}
