@@ -1,12 +1,14 @@
+### GENERAL ###
+
 import torch
 
-##
-#   SKRL-RL STUFF
-##
+### SKRL-RL STUFF ###
+
 from skrl.agents.torch.ppo import PPO
 from skrl.envs.loaders.torch import load_isaaclab_env
 from skrl.resources.preprocessors.torch import RunningStandardScaler
 from skrl.envs.wrappers.torch import Wrapper, wrap_env
+        # equal to --> from omni.isaac.lab_tasks.utils.wrappers.skrl import SkrlVecEnvWrapper
 from skrl.agents.torch import Agent
 from skrl.trainers.torch import Trainer, StepTrainer, ParallelTrainer 
 
@@ -57,9 +59,16 @@ PPO_DEFAULT_CONFIG = {
     }
 }
 
+############# CHECK IF TO-DO ###############
+# omni.isaac.lab_tasks.utils.wrappers.skrl.process_skrl_cfg(cfg: dict) → dict:
+"""
+from omni.isaac.lab_tasks.utils.wrappers.skrl import procss_skrl_cfg
+process_skrl_cfg(ALIENGO_ENV_CFG)   # IF ANY (must adapt it)
+"""
+
 def train_ppo(env_, agent=None):
     # Wrap the custom environment
-    wrapped_env = wrap_env(env_)  # wrap it for SKRL
+    wrapped_env = wrap_env(env_, wrapper="isaaclab")  # wrap it for SKRL
 
     # Define the model
     models = {}
@@ -104,19 +113,21 @@ def train_ppo(env_, agent=None):
             "gradient_clipping": 0.5
         })
 
-    # Training loop
-    for epoch in range(1000):
-        agent.train()
-        rewards = 0
-        obs = wrapped_env.reset()
-        done = False
+    # # Training loop
+    # for epoch in range(1000):
+    #     agent.train()
+    #     rewards = 0
+    #     obs = wrapped_env.reset()
+    #     done = False
         
-        while not done:
-            action = agent.act(obs)
-            obs, reward, done, info = wrapped_env.step(action)
-            rewards += reward
+    #     while not done:
+    #         action = agent.act(obs)
+    #         obs, reward, done, info = wrapped_env.step(action)
+    #         rewards += reward
 
-        print(f"Epoch: {epoch}, Reward: {rewards}")
+    #     print(f"Epoch: {epoch}, Reward: {rewards}")
+
+    return agent
 
 #if __name__ == "__main__":
     #CALL THE FOLLOWING FUNCTION IN THE DESIRED (ENV) SCRIPT

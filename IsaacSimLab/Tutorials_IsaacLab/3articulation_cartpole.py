@@ -7,7 +7,6 @@
     cd
     cd IsaacLab_
     ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/3articulation_cartpole.py
-          /home/rl_sim/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/3articulation_cartpole.py
 
 """
 
@@ -39,9 +38,6 @@ from omni.isaac.lab.sim import SimulationContext
 # Pre-defined configs
 ##
 from omni.isaac.lab_assets import CARTPOLE_CFG  # isort:skip
-#from assets.USD_converted.aliengo import aliengo
-from unitree import UNITREE_AlienGo_CFG
-
 
 def design_scene() -> tuple[dict, list[list[float]]]:
     """Designs the scene."""
@@ -61,18 +57,12 @@ def design_scene() -> tuple[dict, list[list[float]]]:
     prim_utils.create_prim("/World/Origin2", "Xform", translation=origins[1])
 
     # Articulation --> CARTPOLE or robot type (need USD)
-    # cartpole_cfg = CARTPOLE_CFG.copy()
-    # cartpole_cfg.prim_path = "/World/Origin.*/Robot"
-    # cartpole = Articulation(cfg=cartpole_cfg)
-
-    ## AlienGo try
-    robot_cfg = UNITREE_AlienGo_CFG.copy()
-    robot_cfg.prim_path ="/World/Origin.*/Robot"
-    robot = Articulation(cfg=robot_cfg)
-
+    cartpole_cfg = CARTPOLE_CFG.copy()
+    cartpole_cfg.prim_path = "/World/Origin.*/Robot"
+    cartpole = Articulation(cfg=cartpole_cfg)
 
     # return the scene information
-    scene_entities = {"cartpole":robot }
+    scene_entities = {"cartpole": cartpole}
     return scene_entities, origins
 
 
@@ -120,24 +110,20 @@ def run_simulator(sim: sim_utils.SimulationContext, entities: dict[str, Articula
 
 def main():
     """Main function."""
-    # Load kit helper
     sim_cfg = sim_utils.SimulationCfg(device="cpu", use_gpu_pipeline=False)
     sim = SimulationContext(sim_cfg)
-    # Set main camera
+
     sim.set_camera_view([2.5, 0.0, 4.0], [0.0, 0.0, 2.0])
-    # Design scene
+
     scene_entities, scene_origins = design_scene()
     scene_origins = torch.tensor(scene_origins, device=sim.device)
-    # Play the simulator
     sim.reset()
-    # Now we are ready!
+
     print("[INFO]: Setup complete...")
     # Run the simulator
     run_simulator(sim, scene_entities, scene_origins)
 
 
 if __name__ == "__main__":
-    # run the main function
     main()
-    # close sim app
     simulation_app.close()
