@@ -184,33 +184,54 @@ class RewardsCfg:
     body_height = RewTerm(
         func=mdp.base_pos_z,
         weight=1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["trunk"]), "target": 0.25},
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["trunk"]), "target": 0.35},
     )
-    # (4) Shaping tasks: lower cart velocity
-    robot_vel = RewTerm(
-        func=mdp.joint_vel_l1,
-        weight=-0.01,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["slider_to_cart"])},
+    # (4) Shaping tasks: Keep body almost horizontal
+    orientation_stability = RewTerm(
+        func=mdp.base_orientation,
+        weight=0.2,
+        params={"target": [0, 0, 0, 1]}  # Target quaternion for upright position
     )
+    # (5) Shaping tasks: Foot contact
+    # foot_contact = RewTerm(           # TO CHECK
+    #     func=mdp.foot_contact,
+    #     weight=0.1,
+    #     params={"contact_points": [".*_calf_joint"]}
+    # )
 
 ### EVENTS ###
 @configclass
 class EventCfg:
     """Configuration for events."""
 
-    reset_scene = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+    def __init__(self):
+        self.reset_scene = self.reset_scene_()
+    def reset_scene_(self):
+        return EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+
+@configclass
+class TerminationsCfg:
+    """Termination terms for the MDP."""
+
+    def __init__(self):
+        self.time_out = self.time_out_()
+    def time_out_(self):
+        return DoneTerm(func=mdp.time_out, time_out=True)
+    
 
 ######### ENVIRONMENT #########
 
 class AliengoEnvCfg(ManagerBasedEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
-    def __init__(self, num_envs=16, env_spacing=2.5):
+    def __init__(self):
         args = parse_args()
-        self.scene = BaseSceneCfg(num_envs=num_envs, env_spacing=env_spacing)
-        self.observations = ObservationsCfg()
-        self.actions = ActionsCfg()
-        self.events = EventCfg()
+        
+        self.scene          = BaseSceneCfg(num_envs=args.num_envs, env_spacing=args.env_spacing)
+        self.observations   = ObservationsCfg()
+        self.actions        = ActionsCfg()
+        self.events         = EventCfg()
+        self.terminator     = TerminationsCfg()
 
     def __post_init__(self):
 
