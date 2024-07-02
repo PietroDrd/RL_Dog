@@ -166,8 +166,8 @@ class ObservationsCfg:
             self.actions   = ObsTerm(func=mdp.last_action)
 
             def __post_init__(self):
-                self.enable_corruption = True
-                self.concatenate_terms = True
+                self.enable_corruption = True   # IDK
+                self.concatenate_terms = True   # IDK
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()  #CONFIGURATIONS FOR THE POLICY (PPO) --> check ppo.py
@@ -187,17 +187,18 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["trunk"]), "target": 0.35},
     )
     # (4) Shaping tasks: Keep body almost horizontal
-    orientation_stability = RewTerm(
-        func=mdp.base_orientation,
-        weight=0.2,
-        params={"target": [0, 0, 0, 1]}  # Target quaternion for upright position
-    )
+    # orientation_stability = RewTerm(  #  NOT an MDP feature, i have to built it by myself
+    #     func=mdp.base_orientation,
+    #     weight=0.2,
+    #     params={"target": [0, 0, 0, 1]}  # Horizontal Body -> x // to ground
+    # )
     # (5) Shaping tasks: Foot contact
-    # foot_contact = RewTerm(           # TO CHECK
+    # foot_contact = RewTerm(           # TO CHECK or TO BUILD IT
     #     func=mdp.foot_contact,
     #     weight=0.1,
     #     params={"contact_points": [".*_calf_joint"]}
     # )
+    # (6) Walk
 
 ### EVENTS ###
 @configclass
