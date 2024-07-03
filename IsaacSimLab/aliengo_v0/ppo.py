@@ -5,12 +5,15 @@ import torch
 ### SKRL-RL STUFF ###
 
 from skrl.agents.torch.ppo import PPO
-from skrl.envs.loaders.torch import load_isaaclab_env
-from skrl.resources.preprocessors.torch import RunningStandardScaler
+#from skrl.envs.loaders.torch import load
 from skrl.envs.wrappers.torch import Wrapper, wrap_env
         # equal to --> from omni.isaac.lab_tasks.utils.wrappers.skrl import SkrlVecEnvWrapper
+
+from skrl.resources.preprocessors.torch import RunningStandardScaler
+from skrl.memories.torch import RandomMemory
 from skrl.agents.torch import Agent
 from skrl.trainers.torch import Trainer, StepTrainer, ParallelTrainer 
+from skrl.utils import set_seed
 
 
 PPO_DEFAULT_CONFIG = {
@@ -66,6 +69,60 @@ from omni.isaac.lab_tasks.utils.wrappers.skrl import procss_skrl_cfg
 process_skrl_cfg(ALIENGO_ENV_CFG)   # IF ANY (must adapt it)
 """
 
+class PPO_v1:
+    def __init__(self, env, config=PPO_DEFAULT_CONFIG):
+        self.env = wrap_env(env, wrapper="isaaclab")    # by SKRL
+        self.config = config
+        self.device="cuda" if torch.cuda.is_available() else "cpu"
+        self.num_envs = env.num_env   #needed for MEMORY of PPO, num_envs comes from "args" of the env object
+        self.agent = self._create_agent()
+
+    def _create_model_nn(self):
+        return {
+            "policy": torch.nn.Sequential(
+                torch.nn.Linear(self.env.observation_space.shape[0], 256),
+                torch.nn.ReLU(),
+                torch.nn.Linear(256, 128),
+                torch.nn.ReLU(),
+                torch.nn.Linear(128, 64),
+                torch.nn.ReLU(),
+                torch.nn.Linear(64, self.env.action_space.shape[0])
+            )
+        }
+    
+    def _create_preprocessor(self):
+        return {
+            "observation_scaler": RunningStandardScaler(shape=self.env.observation_space.shape)
+        }
+
+    def _create_agent(self):
+        model_nn_ = self._create_model_nn()
+        preprocessor_ = self._create_preprocessor()
+        
+        # instantiate a memory as rollout buffer (any memory can be used for this)
+        memory_rndm_ = RandomMemory(memory_size=24, num_envs=self.num_envs, device=self.device)
+
+        agent = PPO(
+            models=model_nn_,
+            preprocessor = preprocessor_,
+            memory=memory_rndm_,
+            cfg=self.config,
+            env=self.env,
+            device=self.device
+        )
+    
+
+# ppo 1
+# https://skrl.readthedocs.io/en/latest/_downloads/17f299c7b73f8d5f2c56b336c693da94/torch_velocity_anymal_c_ppo.py
+# ppo2
+# https://skrl.readthedocs.io/en/latest/_downloads/7f665f3e3ea3a391c065747e4d1ef288/torch_anymal_ppo.py
+# skrl exampl
+# https://skrl.readthedocs.io/en/latest/intro/examples.html#nvidia-isaac-lab
+
+
+
+
+# BAD (not correct to have it here, not intrinsectly wrong) implementation
 def train_ppo(env_, agent=None):
     # Wrap the custom environment
     wrapped_env = wrap_env(env_, wrapper="isaaclab")  # wrap it for SKRL

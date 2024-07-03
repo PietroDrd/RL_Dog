@@ -143,7 +143,7 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
         def __init__(self, env: ManagerBasedRLEnv):
-            self.cmnd = CommandsCfg(env)
+            self.cmnd = CommandsCfg(env)                            # noise -> Added noise 
             self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1))
             self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
             self.projected_gravity = ObsTerm(
@@ -222,13 +222,14 @@ class TerminationsCfg:
 
 ######### ENVIRONMENT #########
 
-class AliengoEnvCfg(ManagerBasedEnvCfg):
+class AliengoEnvCfg(ManagerBasedEnvCfg):   #MBEnv --> _init_, _del_, load_managers(), reset(), step(), seed(), close(), 
     """Configuration for the locomotion velocity-tracking environment."""
 
     def __init__(self):
         args = parse_args()
         
         self.scene          = BaseSceneCfg(num_envs=args.num_envs, env_spacing=args.env_spacing)
+        self.num_envs       = args.num_envs     # needed in PPO, for the env its already specified above in SCENE
         self.observations   = ObservationsCfg()
         self.actions        = ActionsCfg()
         self.events         = EventCfg()
@@ -242,5 +243,5 @@ class AliengoEnvCfg(ManagerBasedEnvCfg):
         if self.scene.ROUGH_TERRAIN:
             self.sim.physics_material = self.scene.terrain.physics_material
         # update sensor update periods
-        # we tick all the sensors based on the smallest update period (physics update period)
+        # tick all the sensors based on the smallest update period (physics update period)
 
