@@ -15,6 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Quadruped Environment Configuration')
     parser.add_argument('--num_envs', type=int, default=16, help='Number of environments')
     parser.add_argument('--env_spacing', type=float, default=2.5, help='Environment spacing')
+    parser.add_argument('--walk', type=int, default=0, help='ask to Walk or not (1,0)')
     args = parser.parse_args()
     return args
 
@@ -24,7 +25,7 @@ import torch
 import omni.isaac.lab.sim        as sim_utils
 import omni.isaac.lab.envs.mdp   as mdp
 
-from omni.isaac.lab.envs     import ManagerBasedEnvCfg, ManagerBasedRLEnv, ManagerBasedRLEnvCfg
+from omni.isaac.lab.envs     import ManagerBasedEnv, ManagerBasedEnvCfg, ManagerBasedRLEnv, ManagerBasedRLEnvCfg
 from omni.isaac.lab.assets   import ArticulationCfg, AssetBaseCfg
 
 from omni.isaac.lab.managers import EventTermCfg as EventTerm
@@ -128,13 +129,14 @@ class ActionsCfg:
 class CommandsCfg:
     """Command terms for the MDP. HIGH LEVEL GOALS --> e.g., velocity, task to do"""
 
-    def __init__(self, env: ManagerBasedRLEnv):
+    def __init__(self, env: ManagerBasedRLEnv):          #  walk = [0, 1] -> walk or not !
         self.env = env
-        self.velocity_cmd = self._initialize_velocity_cmd()
+        self.walk = env.walk
+        self.velocity_cmd = self._initialize_velocity_cmd(self.walk)    
 
-    def _initialize_velocity_cmd(self):
+    def _initialize_velocity_cmd(self, walk):
         # Create a tensor with the shape (num_envs, 3) and fill it with the initial velocity command
-        return torch.tensor([[1, 0, 0]], device=self.env.device).repeat(self.env.num_envs, 1)
+        return torch.tensor([[1, 0, 0]]*walk, device=self.env.device).repeat(self.env.num_envs, 1)
 
 
 ### OBSERVATIONS ###
@@ -145,7 +147,9 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
         def __init__(self, env: ManagerBasedRLEnv):
-            self.cmnd = CommandsCfg(env)                            # noise -> Added noise 
+
+            self.cmnd = CommandsCfg(env)
+            
             self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1))
             self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
             self.projected_gravity = ObsTerm(
@@ -172,7 +176,9 @@ class ObservationsCfg:
                 self.concatenate_terms = True   # IDK
 
     # observation groups
-    policy: PolicyCfg = PolicyCfg()  #CONFIGURATIONS FOR THE POLICY (PPO) --> check ppo.py
+    def __init__(self, env: ManagerBasedRLEnv):
+        self.policy = self.PolicyCfg(env)
+
 
 @configclass
 class RewardsCfg:
@@ -180,27 +186,24 @@ class RewardsCfg:
 
     # (1) Constant running reward
     alive = RewTerm(func=mdp.is_alive, weight=1.0)
+
     # (2) Failure penalty
     terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
+
     # (3) Primary task: keep body raised from the floor
     body_height = RewTerm(
         func=mdp.base_pos_z,
         weight=1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["trunk"]), "target": 0.35},
     )
+    
     # (4) Shaping tasks: Keep body almost horizontal
-    # orientation_stability = RewTerm(  #  NOT an MDP feature, i have to built it by myself
-    #     func=mdp.base_orientation,
-    #     weight=0.2,
-    #     params={"target": [0, 0, 0, 1]}  # Horizontal Body -> x // to ground
-    # )
-    # (5) Shaping tasks: Foot contact
-    # foot_contact = RewTerm(           # TO CHECK or TO BUILD IT
-    #     func=mdp.foot_contact,
-    #     weight=0.1,
-    #     params={"contact_points": [".*_calf_joint"]}
-    # )
-    # (6) Walk
+    horiz_orient = RewTerm(
+        func=mdp.root_quat_w,
+        weight=0.6,
+        params={"target": [1, 0, 0, 0]} # Robot's BaseLink x_axis // target ---> be straight
+    )
+    # another sol is to have the projected_grav as [0, 0, -g] --> [0, 0, -1] --> q = [0.707, 0, 0, -0.707]
 
 ### EVENTS ###
 @configclass
@@ -224,21 +227,23 @@ class TerminationsCfg:
 
 ######### ENVIRONMENT #########
 
-class AliengoEnvCfg(ManagerBasedEnvCfg):   #MBEnv --> _init_, _del_, load_managers(), reset(), step(), seed(), close(), 
+class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_managers(), reset(), step(), seed(), close(), 
     """Configuration for the locomotion velocity-tracking environment."""
 
-    def __init__(self):
-        args = parse_args()
-        
-        self.scene          = BaseSceneCfg(num_envs=args.num_envs, env_spacing=args.env_spacing)
-        self.num_envs       = args.num_envs     # needed in PPO, for the env its already specified above in SCENE
-        self.observations   = ObservationsCfg()
-        self.actions        = ActionsCfg()
-        self.events         = EventCfg()
-        self.terminator     = TerminationsCfg()
+    def __init__(self, args):
+        super().__init__()
+        self.args = args
+        self.scene = BaseSceneCfg(num_envs=args.num_envs, env_spacing=args.env_spacing)
+        self.num_envs = args.num_envs
+        self.walk = args.walk
+        self.observations = None  # Will be set later
+        self.commands = None  # Will be set later
+
+    def set_configs(self, commands, observations):
+        self.commands = commands
+        self.observations = observations
 
     def __post_init__(self):
-
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
 
@@ -247,3 +252,13 @@ class AliengoEnvCfg(ManagerBasedEnvCfg):   #MBEnv --> _init_, _del_, load_manage
         # update sensor update periods
         # tick all the sensors based on the smallest update period (physics update period)
 
+def EXAMPLE_MAIN():
+    env = AliengoEnvCfg(parse_args())
+
+    # Step 2: Create configurations with the environment
+    commands_cfg = CommandsCfg(env)
+    observations_cfg = ObservationsCfg(env)
+
+    # Step 3: Set configurations in the environment
+    env.set_configs(commands_cfg, observations_cfg)
+    # NOW env IS READY
