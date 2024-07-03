@@ -111,6 +111,7 @@ class PPO_v1:
             device=self.device
         )
     
+    # ADD TRAIN 
 
 # ppo 1
 # https://skrl.readthedocs.io/en/latest/_downloads/17f299c7b73f8d5f2c56b336c693da94/torch_velocity_anymal_c_ppo.py
@@ -118,8 +119,6 @@ class PPO_v1:
 # https://skrl.readthedocs.io/en/latest/_downloads/7f665f3e3ea3a391c065747e4d1ef288/torch_anymal_ppo.py
 # skrl exampl
 # https://skrl.readthedocs.io/en/latest/intro/examples.html#nvidia-isaac-lab
-
-
 
 
 # BAD (not correct to have it here, not intrinsectly wrong) implementation

@@ -10,9 +10,7 @@ simulation_app = app_launcher.app
 
 """
 
-
 import argparse
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Quadruped Environment Configuration')
     parser.add_argument('--num_envs', type=int, default=16, help='Number of environments')
@@ -40,10 +38,9 @@ from omni.isaac.lab.scene import InteractiveSceneCfg
 from omni.isaac.lab.utils import configclass
 
 from omni.isaac.lab.utils.noise   import AdditiveUniformNoiseCfg as Unoise
-from omni.isaac.lab.terrains import TerrainImporterCfg
+from omni.isaac.lab.terrains      import TerrainImporterCfg
 from omni.isaac.lab.terrains.config.rough   import ROUGH_TERRAINS_CFG
 from unitree                                import UNITREE_AlienGo_CFG
-
 
 """
     ALIENGO_ENV.PY script STRUCTURE:
@@ -115,13 +112,18 @@ class BaseSceneCfg(InteractiveSceneCfg):
 
 
 ######### MDP - RL #########
-
 ### ACTIONS - COMMANDS ###
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
 
     joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
+
+    # DA CAPIRE
+
+
+######### ######### ######### ########### #########
+
 
 class CommandsCfg:
     """Command terms for the MDP. HIGH LEVEL GOALS --> e.g., velocity, task to do"""

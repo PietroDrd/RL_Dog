@@ -15,7 +15,6 @@ from . import binary_joint_actions, joint_actions, joint_actions_to_limits, non_
 # Joint actions.
 ##
 
-
 @configclass
 class JointActionCfg(ActionTermCfg):
     """Configuration for the base joint action term.
