@@ -99,7 +99,7 @@ mANYMAL_C_CFG = ArticulationCfg(
 
 UNITREE_AlienGo_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/rl_sim/RL_Dog/assets/USD/aliengo_color.usd", # in future modify it with Nucleus directory 
+        usd_path="/home/rl_sim/RL_Dog/assets/USD/aliengo_black.usd", # in future modify it with Nucleus directory 
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,

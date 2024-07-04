@@ -110,81 +110,33 @@ class PPO_v1:
             env=self.env,
             device=self.device
         )
+        return agent
     
-    # ADD TRAIN 
+    def train(self, num_episodes=1000):
+        for ep in range(num_episodes):
+            obs = self.env.reset()
+            done = False
+            tot_reward = 0
+            cnt = 0
+            while not done:
+                action = self.agent.act(obs)  # act if a skrl.agent.torch.ppo --> PPO's method
+                """ Process the environment's states to make a decision (actions) using the main policy """
+                obs, reward, done, info = self.env.step(actions=action)
+                tot_reward += reward 
+                cnt += 1
+                if cnt % 10 == 0: print(f"Episode: {ep}, Total Reward: {tot_reward}")
+
+
+
+
+
+# ADD TRAIN 
 
 # ppo 1
 # https://skrl.readthedocs.io/en/latest/_downloads/17f299c7b73f8d5f2c56b336c693da94/torch_velocity_anymal_c_ppo.py
-# ppo2
+
+# ppo2  --> EXAMPLE_anymal_PPO.py
 # https://skrl.readthedocs.io/en/latest/_downloads/7f665f3e3ea3a391c065747e4d1ef288/torch_anymal_ppo.py
+
 # skrl exampl
 # https://skrl.readthedocs.io/en/latest/intro/examples.html#nvidia-isaac-lab
-
-
-# BAD (not correct to have it here, not intrinsectly wrong) implementation
-def train_ppo(env_, agent=None):
-    # Wrap the custom environment
-    wrapped_env = wrap_env(env_, wrapper="isaaclab")  # wrap it for SKRL
-
-    # Define the model
-    models = {}
-    models["policy"] = torch.nn.Sequential(
-        torch.nn.Linear(wrapped_env.observation_space.shape[0], 256),
-        torch.nn.ReLU(),
-        torch.nn.Linear(256, 128),
-        torch.nn.ReLU(),
-        torch.nn.Linear(128, 64),
-        torch.nn.ReLU(),
-        torch.nn.Linear(64, wrapped_env.action_space.shape[0])
-    ) # original was in,256-->256,256-->256,out
-
-    # Preprocessors
-    preprocessors = {"observation_scaler": RunningStandardScaler(shape=wrapped_env.observation_space.shape)}
-
-    # Create PPO agent
-    if agent == None:
-        cfg_agent = PPO_DEFAULT_CONFIG.copy()
-        agent = PPO(
-            models=models,
-            preprocessors=preprocessors,
-            memory=None,
-            cfg=cfg_agent,
-            env=wrapped_env,
-            device="cuda" if torch.cuda.is_available() else "cpu"
-        )
-
-        # Configure PPO
-        agent.configure({
-            "rollouts": 1024,
-            "learning_epochs": 10,
-            "mini_batches": 32,
-            "discount_factor": 0.99,
-            "lambda": 0.95,
-            "learning_rate": 0.0003,
-            "learning_rate_scheduler": "linear",
-            "learning_rate_scheduler_initial": 1.0,
-            "learning_rate_scheduler_final": 0.0,
-            "entropy_loss_scale": 0.01,
-            "value_loss_scale": 0.5,
-            "gradient_clipping": 0.5
-        })
-
-    # # Training loop
-    # for epoch in range(1000):
-    #     agent.train()
-    #     rewards = 0
-    #     obs = wrapped_env.reset()
-    #     done = False
-        
-    #     while not done:
-    #         action = agent.act(obs)
-    #         obs, reward, done, info = wrapped_env.step(action)
-    #         rewards += reward
-
-    #     print(f"Epoch: {epoch}, Reward: {rewards}")
-
-    return agent
-
-#if __name__ == "__main__":
-    #CALL THE FOLLOWING FUNCTION IN THE DESIRED (ENV) SCRIPT
-    #train_ppo()

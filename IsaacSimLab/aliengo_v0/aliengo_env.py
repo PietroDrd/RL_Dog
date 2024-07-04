@@ -25,6 +25,10 @@ import torch
 import omni.isaac.lab.sim        as sim_utils
 import omni.isaac.lab.envs.mdp   as mdp
 
+##
+#########   import omni.isaac.lab_tasks.manager_based.locomotion.velocity.mdp as mdp    #  !!!!!!!!!!!
+##
+
 from omni.isaac.lab.envs     import ManagerBasedEnv, ManagerBasedEnvCfg, ManagerBasedRLEnv, ManagerBasedRLEnvCfg
 from omni.isaac.lab.assets   import ArticulationCfg, AssetBaseCfg
 
@@ -96,8 +100,15 @@ class BaseSceneCfg(InteractiveSceneCfg):
             )
     
     ### ROBOT ###
-    def robot_(self):
-        return UNITREE_AlienGo_CFG
+    def robot_(self):             # needed 
+        return UNITREE_AlienGo_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")  # obj_type: Articulation(Rigid(Asset))
+        # ``{ENV_REGEX_NS}/Robot`` will be replaced with ``/World/envs/env_.*/Robot``
+        """
+            ### it's almost equal to: ### 
+            robot_cfg = UNITREE_AlienGo_CFG.copy()
+            robot_cfg.prim_path ="/World/Origin.*/Robot"
+            robot = Articulation(cfg=robot_cfg)
+        """
     
     ### LIGHTS ###
     def light_(self):

@@ -13,7 +13,7 @@ the terrain.
     conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v0/base_env.py --num_envs 32
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v0/check_trained.py --num_envs 32
 
 Launch Isaac Sim Simulator first.
 """
