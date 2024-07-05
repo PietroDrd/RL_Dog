@@ -7,7 +7,7 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v0/aliengo_main.py --num_envs 32
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v1/aliengo_main.py --num_envs 32
 
 Launch Isaac Sim Simulator first.
 """
@@ -16,7 +16,7 @@ from omni.isaac.lab.app import AppLauncher
 
 
 import argparse
-parser = argparse.ArgumentParser(description='Quadruped Environment Configuration')
+parser = argparse.ArgumentParser(description='AlienGo_v1 Environment Configuration')
 parser.add_argument('--num_envs',       type=int,               default=16,     help='Number of environments')
 parser.add_argument('--env_spacing',    type=float,             default=2.5,    help='Environment spacing')
 parser.add_argument('--walk',           type=int,               default=0,      help='ask to Walk or not (1,0)')
@@ -35,25 +35,20 @@ app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
 from omni.isaac.lab.envs     import ManagerBasedRLEnv
-from aliengo_env import AliengoEnvCfg, CommandsCfg, ObservationsCfg
-
+from aliengo_env import AliengoEnvCfg
 from aliengo_ppo import PPO_v1
 
-#import tensorboard
 import torch
-
-ROUGH_TERRAIN = 0
 
 def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
-    env_cfg = AliengoEnvCfg(args=args_cli, device=device, rough_terrain=ROUGH_TERRAIN)
+    env_cfg = AliengoEnvCfg()
     env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device)
     
+    obs, _ = env.reset()
     # try with predefined skrl trained 
     agent.train_sequential()
-
-
     env.close()
 
 

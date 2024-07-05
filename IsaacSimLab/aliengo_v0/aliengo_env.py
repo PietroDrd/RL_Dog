@@ -11,6 +11,7 @@ import omni.isaac.lab.envs.mdp   as mdp
 
 from omni.isaac.lab.envs     import ManagerBasedEnv, ManagerBasedEnvCfg, ManagerBasedRLEnv, ManagerBasedRLEnvCfg
 from omni.isaac.lab.assets   import ArticulationCfg, AssetBaseCfg
+from omni.isaac.lab.assets   import Articulation
 
 from omni.isaac.lab.managers import EventTermCfg as EventTerm
 from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
@@ -46,19 +47,21 @@ class BaseSceneCfg(InteractiveSceneCfg):
 
     #############################################
 
-    def __init__(self, rough_terrain=0):
+    def __init__(self, rough_terrain=0, num_envs=16, env_spacing=2.5):
 
-        self.ROUGH_TERRAIN = rough_terrain
-        self.terrain = self.terrain_()
-        self.robot = self.robot_()
-        self.light = self.light_()
-        self.dome_light = self.dome_light_()
+        self.rough_terrain  = rough_terrain
+        self.terrain        = self.terrain_()
+        self.robot          = self.robot_()
+        self.light          = self.light_()
+        self.dome_light     = self.dome_light_()
+        self.num_envs       = num_envs
+        self.env_spacing    = env_spacing
 
     #############################################
 
     ### GROUND - TERRAIN ###
     def terrain_(self):
-        if self.ROUGH_TERRAIN:
+        if self.rough_terrain:
             return TerrainImporterCfg(
                 prim_path="/World/ground",
                 terrain_type="generator",
@@ -83,12 +86,16 @@ class BaseSceneCfg(InteractiveSceneCfg):
     def robot_(self):             # needed 
         return UNITREE_AlienGo_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")  # obj_type: Articulation(Rigid(Asset))
         # ``{ENV_REGEX_NS}/Robot`` will be replaced with ``/World/envs/env_.*/Robot``
-        """
-            ### it's almost equal to: ### 
-            robot_cfg = UNITREE_AlienGo_CFG.copy()
-            robot_cfg.prim_path ="/World/Origin.*/Robot"
-            robot = Articulation(cfg=robot_cfg)
-        """
+        
+        ### it's almost equal to: ### 
+        #robot_cfg = UNITREE_AlienGo_CFG.copy()
+        #robot_cfg.prim_path = "/World/envs/env_.*/Robot"
+        #robot_cfg.prim_path = "/World/Origin.*/Robot"
+        #robot = Articulation(cfg=robot_cfg)
+
+    # or the below one, but you have to modify __init__
+    # robot: ArticulationCfg = UNITREE_AlienGo_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
     
     ### LIGHTS ###
     def light_(self):
@@ -212,18 +219,21 @@ class CurriculumCfg:
     
 
 ######### ENVIRONMENT #########
-
+@configclass
 class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_managers(), reset(), step(), seed(), close(), 
     """Configuration for the locomotion velocity-tracking environment."""
 
-    def __init__(self, args, device):
+    def __init__(self, args, device, rough_terrain=0):
         super().__init__()
-        self.args = args
+        self.args = args    #num_envs, env_spacing, walk
         self.walk = args.walk
         self.num_envs = args.num_envs
+        self.env_spacing = args.env_spacing
+        self.rough_terrain = rough_terrain
+
         self.device   = device
 
-        self.scene          = BaseSceneCfg(num_envs=self.num_envs, env_spacing=args.env_spacing)
+        self.scene          = BaseSceneCfg(rough_terrain=rough_terrain, num_envs=self.num_envs, env_spacing=self.env_spacing)
         self.actions        = ActionsCfg()
         self.commands       = CommandsCfg(walk=self.walk, num_envs=self.num_envs, device=self.device) 
         self.observations   = ObservationsCfg(self.commands.velocity_cmd)
@@ -233,14 +243,37 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.terminations   = TerminationsCfg()
         self.curriculum     = CurriculumCfg()
 
-    def __post_init__(self) -> None:
+        self.initialize_environment()
+
+    def initialize_environment(self):
+        """Initialize additional environment settings."""
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
+        self.sim.render_interval = self.decimation
 
         # viewer settings
         self.viewer.eye = (6.0, 0.0, 4.5)
 
-        if self.scene.ROUGH_TERRAIN:
+        if self.rough_terrain:
             self.sim.physics_material = self.scene.terrain.physics_material
         # update sensor update periods
         # tick all the sensors based on the smallest update period (physics update period)
+
+
+
+
+
+
+
+    # def __post_init__(self) -> None:
+    #     self.decimation = 4  # env decimation -> 50 Hz control
+    #     self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
+    #     self.sim.render_interval = self.decimation
+
+    #     # viewer settings
+    #     self.viewer.eye = (6.0, 0.0, 4.5)
+
+    #     if self.rough_terrain:
+    #         self.sim.physics_material = self.scene.terrain.physics_material
+    #     # update sensor update periods
+    #     # tick all the sensors based on the smallest update period (physics update period)
