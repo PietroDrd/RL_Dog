@@ -1,23 +1,3 @@
-# here i will create the custom environment, wrapped by skrl
-"""
-            ### NOT SURE IT IS NECESSARY ###
-
-from omni.isaac.lab.app import AppLauncher
-
-
-app_launcher = AppLauncher(args_cli)
-simulation_app = app_launcher.app
-
-"""
-
-import argparse
-def parse_args():
-    parser = argparse.ArgumentParser(description='Quadruped Environment Configuration')
-    parser.add_argument('--num_envs', type=int, default=16, help='Number of environments')
-    parser.add_argument('--env_spacing', type=float, default=2.5, help='Environment spacing')
-    parser.add_argument('--walk', type=int, default=0, help='ask to Walk or not (1,0)')
-    args = parser.parse_args()
-    return args
 
 import math
 import torch
@@ -124,30 +104,22 @@ class BaseSceneCfg(InteractiveSceneCfg):
 
 
 ######### MDP - RL #########
-### ACTIONS - COMMANDS ###
+
+### ACTIONS ###
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
 
     joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
 
-    # DA CAPIRE
 
-
-######### ######### ######### ########### #########
-
-
+### COMANDS ###
 class CommandsCfg:
     """Command terms for the MDP. HIGH LEVEL GOALS --> e.g., velocity, task to do"""
 
-    def __init__(self, env: ManagerBasedRLEnv):          #  walk = [0, 1] -> walk or not !
-        self.env = env
-        self.walk = env.walk
-        self.velocity_cmd = self._initialize_velocity_cmd(self.walk)    
-
-    def _initialize_velocity_cmd(self, walk):
-        # Create a tensor with the shape (num_envs, 3) and fill it with the initial velocity command
-        return torch.tensor([[1, 0, 0]]*walk, device=self.env.device).repeat(self.env.num_envs, 1)
+    def __init__(self, walk=False, num_envs=16, device="cpu"):          #  walk = [0, 1] -> walk or not !
+        dir = [1, 0, 0] if walk else [0, 0, 0]
+        self.velocity_cmd = torch.tensor([dir], device=device).repeat(num_envs, 1)
 
 
 ### OBSERVATIONS ###
@@ -157,9 +129,7 @@ class ObservationsCfg:
     @configclass
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
-        def __init__(self, env: ManagerBasedRLEnv):
-
-            self.cmnd = CommandsCfg(env)
+        def __init__(self, velocity_cmd):
             
             self.base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1))
             self.base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
@@ -168,7 +138,7 @@ class ObservationsCfg:
                 noise=Unoise(n_min=-0.05, n_max=0.05),
             )
 
-            self.velocity_commands = ObsTerm(func=lambda: self.cmnd.velocity_cmd)  # wrap it in a function
+            self.velocity_commands = ObsTerm(func=lambda: velocity_cmd)  # wrap it in a function
             """
                 If you didn't use a lambda function and directly passed the tensor, like this:
                     self.velocity_commands = ObsTerm(func=self.cmnd.velocity_cmd)
@@ -187,10 +157,20 @@ class ObservationsCfg:
                 self.concatenate_terms = True   # IDK
 
     # observation groups
-    def __init__(self, env: ManagerBasedRLEnv):
-        self.policy = self.PolicyCfg(env)
+    def __init__(self, velocity_cmd = [0,0,0]):
+        self.policy = self.PolicyCfg(velocity_cmd=velocity_cmd)
 
+### EVENTS ###
+@configclass
+class EventCfg:
+    """Configuration for events."""
 
+    def __init__(self):
+        self.reset_scene = self.reset_scene_()
+    def reset_scene_(self):
+        return EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+
+### REWARDS ###
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
@@ -204,27 +184,17 @@ class RewardsCfg:
     # (3) Primary task: keep body raised from the floor
     body_height = RewTerm(
         func=mdp.base_pos_z,
-        weight=1.0,
+        weight=1.1,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["trunk"]), "target": 0.35},
     )
     
     # (4) Shaping tasks: Keep body almost horizontal
     horiz_orient = RewTerm(
         func=mdp.root_quat_w,
-        weight=0.6,
+        weight=0.8,
         params={"target": [1, 0, 0, 0]} # Robot's BaseLink x_axis // target ---> be straight
     )
     # another sol is to have the projected_grav as [0, 0, -g] --> [0, 0, -1] --> q = [0.707, 0, 0, -0.707]
-
-### EVENTS ###
-@configclass
-class EventCfg:
-    """Configuration for events."""
-
-    def __init__(self):
-        self.reset_scene = self.reset_scene_()
-    def reset_scene_(self):
-        return EventTerm(func=mdp.reset_scene_to_default, mode="reset")
 
 @configclass
 class TerminationsCfg:
@@ -235,41 +205,42 @@ class TerminationsCfg:
     def time_out_(self):
         return DoneTerm(func=mdp.time_out, time_out=True)
     
+@configclass
+class CurriculumCfg:
+    """Configuration for the curriculum."""
+    pass
+    
 
 ######### ENVIRONMENT #########
 
 class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_managers(), reset(), step(), seed(), close(), 
     """Configuration for the locomotion velocity-tracking environment."""
 
-    def __init__(self, args):
+    def __init__(self, args, device):
         super().__init__()
         self.args = args
-        self.scene = BaseSceneCfg(num_envs=args.num_envs, env_spacing=args.env_spacing)
-        self.num_envs = args.num_envs
         self.walk = args.walk
-        self.observations = None  # Will be set later
-        self.commands = None  # Will be set later
+        self.num_envs = args.num_envs
+        self.device   = device
 
-    def set_configs(self, commands, observations):
-        self.commands = commands
-        self.observations = observations
+        self.scene          = BaseSceneCfg(num_envs=self.num_envs, env_spacing=args.env_spacing)
+        self.actions        = ActionsCfg()
+        self.commands       = CommandsCfg(walk=self.walk, num_envs=self.num_envs, device=self.device) 
+        self.observations   = ObservationsCfg(self.commands.velocity_cmd)
+ 
+        self.events         = EventCfg()
+        self.rewards        = RewardsCfg()
+        self.terminations   = TerminationsCfg()
+        self.curriculum     = CurriculumCfg()
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
+
+        # viewer settings
+        self.viewer.eye = (6.0, 0.0, 4.5)
 
         if self.scene.ROUGH_TERRAIN:
             self.sim.physics_material = self.scene.terrain.physics_material
         # update sensor update periods
         # tick all the sensors based on the smallest update period (physics update period)
-
-def EXAMPLE_MAIN():
-    env = AliengoEnvCfg(parse_args())
-
-    # Step 2: Create configurations with the environment
-    commands_cfg = CommandsCfg(env)
-    observations_cfg = ObservationsCfg(env)
-
-    # Step 3: Set configurations in the environment
-    env.set_configs(commands_cfg, observations_cfg)
-    # NOW env IS READY

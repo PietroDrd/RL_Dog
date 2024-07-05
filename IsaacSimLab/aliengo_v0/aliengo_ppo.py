@@ -12,7 +12,7 @@ from skrl.envs.wrappers.torch import Wrapper, wrap_env
 from skrl.resources.preprocessors.torch import RunningStandardScaler
 from skrl.memories.torch import RandomMemory
 from skrl.agents.torch import Agent
-from skrl.trainers.torch import Trainer, StepTrainer, ParallelTrainer 
+from skrl.trainers.torch import Trainer, SequentialTrainer, ParallelTrainer, StepTrainer 
 from skrl.utils import set_seed
 
 
@@ -70,10 +70,10 @@ process_skrl_cfg(ALIENGO_ENV_CFG)   # IF ANY (must adapt it)
 """
 
 class PPO_v1:
-    def __init__(self, env, config=PPO_DEFAULT_CONFIG):
+    def __init__(self, env, config=PPO_DEFAULT_CONFIG, device = "cpu"):
         self.env = wrap_env(env, wrapper="isaaclab")    # by SKRL
         self.config = config
-        self.device="cuda" if torch.cuda.is_available() else "cpu"
+        self.device = device
         self.num_envs = env.num_env   #needed for MEMORY of PPO, num_envs comes from "args" of the env object
         self.agent = self._create_agent()
 
@@ -112,7 +112,7 @@ class PPO_v1:
         )
         return agent
     
-    def train(self, num_episodes=1000):
+    def train_mine_easy(self, num_episodes=1000):
         for ep in range(num_episodes):
             obs = self.env.reset()
             done = False
@@ -126,7 +126,15 @@ class PPO_v1:
                 cnt += 1
                 if cnt % 10 == 0: print(f"Episode: {ep}, Total Reward: {tot_reward}")
 
+    def train_sequential(self, timesteps=20000, headless=False):
+        cfg_trainer= {"timesteps": timesteps, "headless": headless}
+        trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
+        trainer.train()
 
+    def train_parallel(self, timesteps=20000, headless=False):
+        cfg_trainer = {"timesteps": timesteps, "headless": headless}
+        trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
+        trainer.train() 
 
 
 
