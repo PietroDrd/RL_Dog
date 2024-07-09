@@ -2,6 +2,15 @@
 import math
 import torch
 
+########### DELETE IT IN FUTURE, NOT NECESSARY
+# import os
+# import sys
+# sys.path.append("~/IsaacLab_/source/extensions/omni.isaac.lab")
+# sys.path.append("~/IsaacLab_/source/extensions/omni.isaac.lab_assets")
+# sys.path.append("~/IsaacLab_/source/extensions/omni.isaac.lab_tasks")
+# os.path.expanduser("~/IsaacLab_")
+
+
 import omni.isaac.lab.sim        as sim_utils
 import omni.isaac.lab.envs.mdp   as mdp
 
@@ -26,7 +35,8 @@ from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.noise   import AdditiveUniformNoiseCfg as Unoise
 from omni.isaac.lab.terrains      import TerrainImporterCfg
 from omni.isaac.lab.terrains.config.rough   import ROUGH_TERRAINS_CFG
-from unitree                                import UNITREE_AlienGo_CFG
+from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black  #modified in IsaacLab_ WORKS 
+#from unitree import AliengoCFG_Black, AliengoCFG_Color
 
 """
     ALIENGO_ENV.PY script STRUCTURE:
@@ -84,17 +94,17 @@ class BaseSceneCfg(InteractiveSceneCfg):
     
     ### ROBOT ###
     def robot_(self):             # needed 
-        return UNITREE_AlienGo_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")  # obj_type: Articulation(Rigid(Asset))
+        return AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")  # obj_type: Articulation(Rigid(Asset))
         # ``{ENV_REGEX_NS}/Robot`` will be replaced with ``/World/envs/env_.*/Robot``
         
         ### it's almost equal to: ### 
-        #robot_cfg = UNITREE_AlienGo_CFG.copy()
+        #robot_cfg = AliengoCFG_Black.copy()
         #robot_cfg.prim_path = "/World/envs/env_.*/Robot"
         #robot_cfg.prim_path = "/World/Origin.*/Robot"
         #robot = Articulation(cfg=robot_cfg)
 
     # or the below one, but you have to modify __init__
-    # robot: ArticulationCfg = UNITREE_AlienGo_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    # robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     
     ### LIGHTS ###

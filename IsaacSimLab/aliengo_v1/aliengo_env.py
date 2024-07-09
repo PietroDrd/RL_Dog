@@ -26,7 +26,8 @@ from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.noise   import AdditiveUniformNoiseCfg as Unoise
 from omni.isaac.lab.terrains      import TerrainImporterCfg
 from omni.isaac.lab.terrains.config.rough   import ROUGH_TERRAINS_CFG
-from unitree import UNITREE_AlienGo_CFG
+from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black #modified in IsaacLab_
+#from unitree import AliengoCFG_Black, AliengoCFG_Color
 
 """
     ALIENGO_ENV.PY script STRUCTURE:

@@ -13,7 +13,7 @@ the terrain.
 .. code-block:: bash
 
     # Run the script
-    ./isaaclab.sh -p source/standalone/tutorials/04_envs/quadruped_base_env.py --num_envs 32
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/EXAMPLES/EXAMPLE_check_trained.py --num_envs 64
 
 """
 
@@ -61,6 +61,8 @@ from omni.isaac.lab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 ##
 from omni.isaac.lab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 from omni.isaac.lab_assets.anymal import ANYMAL_C_CFG  # isort: skip
+from omni.isaac.lab_assets.unitree import AliengoCFG_Color, AliengoCFG_Black  #modified in IsaacLab_ WORKS 
+
 
 
 ##
@@ -99,7 +101,7 @@ class MySceneCfg(InteractiveSceneCfg):
     )
 
     # add robot
-    robot: ArticulationCfg = ANYMAL_C_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     # sensors
     height_scanner = RayCasterCfg(

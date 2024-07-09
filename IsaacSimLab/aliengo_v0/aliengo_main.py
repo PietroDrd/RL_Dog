@@ -12,8 +12,17 @@ This script demonstrates the environment for a quadruped robot AlienGo.
 Launch Isaac Sim Simulator first.
 """
 
-from omni.isaac.lab.app import AppLauncher
+########### DELETE IT IN FUTURE, NOT NECESSARY
+# import os
+# import sys
+# sys.path.append("~/IsaacLab_/source/extensions/omni.isaac.lab")
+# sys.path.append("~/IsaacLab_/source/extensions/omni.isaac.lab_assets")
+# sys.path.append("~/IsaacLab_/source/extensions/omni.isaac.lab_tasks")
+# os.path.expanduser("~/IsaacLab_")
 
+
+
+from omni.isaac.lab.app import AppLauncher
 
 import argparse
 parser = argparse.ArgumentParser(description='Quadruped Environment Configuration')
@@ -48,6 +57,7 @@ def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
     env_cfg = AliengoEnvCfg(args=args_cli, device=device, rough_terrain=ROUGH_TERRAIN)
     env = ManagerBasedRLEnv(cfg=env_cfg)
+    env.reset()
     agent = PPO_v1(env=env, device=device)
     
     # try with predefined skrl trained 

@@ -37,8 +37,8 @@ from omni.isaac.lab.sim import SimulationContext
 ##
 # Pre-defined configs
 ##
-from unitree import UNITREE_AlienGo_CFG
-
+#from unitree import AliengoCFG_Black, AliengoCFG_Color
+from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black  #modified in IsaacLab_
 
 def design_scene() -> tuple[dict, list[list[float]]]:
     """Designs the scene."""
@@ -57,7 +57,8 @@ def design_scene() -> tuple[dict, list[list[float]]]:
         prim_utils.create_prim(f"/World/Origin{orig+1}", "Xform", translation=origins[orig])
 
     ## AlienGo try
-    robot_cfg = UNITREE_AlienGo_CFG.copy()
+    robot_cfg = AliengoCFG_Black.copy()
+    #robot_cfg.prim_ppath = "{ENV_REGEX_NS}/Robot"
     robot_cfg.prim_path ="/World/Origin.*/Robot"
     robot = Articulation(cfg=robot_cfg)
 

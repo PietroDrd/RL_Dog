@@ -55,8 +55,8 @@ from    omni.isaac.lab.utils.noise   import AdditiveUniformNoiseCfg as Unoise # 
 from omni.isaac.lab.terrains.config.rough import ROUGH_TERRAINS_CFG  # type: ignore # isort: skip
 from omni.isaac.lab_assets.anymal   import ANYMAL_C_CFG  # type: ignore # isort: skip
 from omni.isaac.lab_assets.unitree  import UNITREE_A1_CFG
-from unitree import UNITREE_AlienGo_CFG
-
+#from unitree import AliengoCFG_Black, AliengoCFG_Color
+from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black  #modified in IsaacLab_ WORKS 
 
 ROUGH_TERRAIN = 0
 
@@ -101,7 +101,7 @@ class MySceneCfg(InteractiveSceneCfg):
         )
 
     # add robot
-    robot: ArticulationCfg = UNITREE_AlienGo_CFG #.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     # Sensor implemented in Anymal, idk if ALIENGO HAS IT
     # height_scanner = RayCasterCfg(
