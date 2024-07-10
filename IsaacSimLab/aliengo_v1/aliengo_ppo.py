@@ -4,63 +4,19 @@ import torch
 
 ### SKRL-RL STUFF ###
 
-from skrl.agents.torch.ppo import PPO
-#from skrl.envs.loaders.torch import load
+from skrl.agents.torch.ppo import PPO, PPO_DEFAULT_CONFIG
 from skrl.envs.wrappers.torch import Wrapper, wrap_env
         # equal to --> from omni.isaac.lab_tasks.utils.wrappers.skrl import SkrlVecEnvWrapper
 
 from skrl.resources.preprocessors.torch import RunningStandardScaler
 from skrl.memories.torch import RandomMemory
 from skrl.agents.torch import Agent
+from skrl.models.torch import Model, GaussianMixin, DeterministicMixin
 from skrl.trainers.torch import Trainer, SequentialTrainer, ParallelTrainer, StepTrainer 
 from skrl.utils import set_seed
 
-
-PPO_DEFAULT_CONFIG = {
-    "rollouts": 16,                 # number of rollouts before updating
-    "learning_epochs": 8,           # number of learning epochs during each update
-    "mini_batches": 2,              # number of mini batches during each learning epoch
-
-    "discount_factor": 0.99,        # discount factor (gamma)
-    "lambda": 0.95,                 # TD(lambda) coefficient (lam) for computing returns and advantages
-
-    "learning_rate": 1e-3,                  # learning rate
-    "learning_rate_scheduler": None,        # learning rate scheduler class (see torch.optim.lr_scheduler)
-    "learning_rate_scheduler_kwargs": {},   # learning rate scheduler's kwargs (e.g. {"step_size": 1e-3})
-
-    "state_preprocessor": None,             # state preprocessor class (see skrl.resources.preprocessors)
-    "state_preprocessor_kwargs": {},        # state preprocessor's kwargs (e.g. {"size": env.observation_space})
-    "value_preprocessor": None,             # value preprocessor class (see skrl.resources.preprocessors)
-    "value_preprocessor_kwargs": {},        # value preprocessor's kwargs (e.g. {"size": 1})
-
-    "random_timesteps": 0,          # random exploration steps
-    "learning_starts": 0,           # learning starts after this many steps
-
-    "grad_norm_clip": 0.5,              # clipping coefficient for the norm of the gradients
-    "ratio_clip": 0.2,                  # clipping coefficient for computing the clipped surrogate objective
-    "value_clip": 0.2,                  # clipping coefficient for computing the value loss (if clip_predicted_values is True)
-    "clip_predicted_values": False,     # clip predicted values during value loss computation
-
-    "entropy_loss_scale": 0.0,      # entropy loss scaling factor
-    "value_loss_scale": 1.0,        # value loss scaling factor
-
-    "kl_threshold": 0,              # KL divergence threshold for early stopping
-
-    "rewards_shaper": None,         # rewards shaping function: Callable(reward, timestep, timesteps) -> reward
-    "time_limit_bootstrap": False,  # bootstrap at timeout termination (episode truncation)
-
-    "experiment": {
-        "directory": "",            # experiment's parent directory
-        "experiment_name": "",      # experiment name
-        "write_interval": "auto",   # TensorBoard writing interval (timesteps)
-
-        "checkpoint_interval": "auto",      # interval for checkpoints (timesteps)
-        "store_separately": False,          # whether to store checkpoints separately
-
-        "wandb": False,             # whether to use Weights & Biases
-        "wandb_kwargs": {}          # wandb kwargs (see https://docs.wandb.ai/ref/python/init)
-    }
-}
+### ISAACLAB CLASSES ###
+from omni.isaac.lab.envs     import ManagerBasedRLEnv
 
 ############# CHECK IF TO-DO ###############
 # omni.isaac.lab_tasks.utils.wrappers.skrl.process_skrl_cfg(cfg: dict) → dict:
@@ -69,27 +25,33 @@ from omni.isaac.lab_tasks.utils.wrappers.skrl import procss_skrl_cfg
 process_skrl_cfg(ALIENGO_ENV_CFG)   # IF ANY (must adapt it)
 """
 
-from omni.isaac.lab.envs     import ManagerBasedRLEnv
 class PPO_v1:
     def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cpu"):
-        self.env = wrap_env(env, wrapper="isaaclab")    # by SKRL
+        self.env = wrap_env(env)    # SKRL: wrapper = "auto", by default,  otherwise--> "isaaclab"
         self.config = config
         self.device = device
         self.num_envs = env.num_envs   #needed for MEMORY of PPO, num_envs comes from "args" of the env object
         self.agent = self._create_agent()
+        
 
     def _create_model_nn(self):
-        return {
-            "policy": torch.nn.Sequential(
-                torch.nn.Linear(self.env.observation_space.shape[0], 256),
-                torch.nn.ReLU(),
-                torch.nn.Linear(256, 128),
-                torch.nn.ReLU(),
-                torch.nn.Linear(128, 64),
-                torch.nn.ReLU(),
-                torch.nn.Linear(64, self.env.action_space.shape[0])
-            )
-        }
+
+        #  NO, PPO REQUIRES A SHARED (Stochast+Determ) Models -->class Shared(GaussianMixin, DeterministicMixin, Model):
+        #  IMPLEMENT IT FOR FUCK SAKE
+        
+        # return {
+        #     "policy": torch.nn.Sequential(
+        #         torch.nn.Linear(self.env.observation_space.shape[0], 256),
+        #         torch.nn.ReLU(),
+        #         torch.nn.Linear(256, 128),
+        #         torch.nn.ReLU(),
+        #         torch.nn.Linear(128, 64),
+        #         torch.nn.ReLU(),
+        #         torch.nn.Linear(64, self.env.action_space.shape[0])
+        #     )
+        # }
+        self.no = None
+        return pass
     
     def _create_preprocessor(self):
         return {
@@ -138,6 +100,52 @@ class PPO_v1:
         trainer.train() 
 
 
+# just to have a look about the values, this is ignored by the code since its after 
+PPO_DEFAULT_CONFIG = {
+    "rollouts": 16,                 # number of rollouts before updating
+    "learning_epochs": 8,           # number of learning epochs during each update
+    "mini_batches": 2,              # number of mini batches during each learning epoch
+
+    "discount_factor": 0.99,        # discount factor (gamma)
+    "lambda": 0.95,                 # TD(lambda) coefficient (lam) for computing returns and advantages
+
+    "learning_rate": 1e-3,                  # learning rate
+    "learning_rate_scheduler": None,        # learning rate scheduler class (see torch.optim.lr_scheduler)
+    "learning_rate_scheduler_kwargs": {},   # learning rate scheduler's kwargs (e.g. {"step_size": 1e-3})
+
+    "state_preprocessor": None,             # state preprocessor class (see skrl.resources.preprocessors)
+    "state_preprocessor_kwargs": {},        # state preprocessor's kwargs (e.g. {"size": env.observation_space})
+    "value_preprocessor": None,             # value preprocessor class (see skrl.resources.preprocessors)
+    "value_preprocessor_kwargs": {},        # value preprocessor's kwargs (e.g. {"size": 1})
+
+    "random_timesteps": 0,          # random exploration steps
+    "learning_starts": 0,           # learning starts after this many steps
+
+    "grad_norm_clip": 0.5,              # clipping coefficient for the norm of the gradients
+    "ratio_clip": 0.2,                  # clipping coefficient for computing the clipped surrogate objective
+    "value_clip": 0.2,                  # clipping coefficient for computing the value loss (if clip_predicted_values is True)
+    "clip_predicted_values": False,     # clip predicted values during value loss computation
+
+    "entropy_loss_scale": 0.0,      # entropy loss scaling factor
+    "value_loss_scale": 1.0,        # value loss scaling factor
+
+    "kl_threshold": 0,              # KL divergence threshold for early stopping
+
+    "rewards_shaper": None,         # rewards shaping function: Callable(reward, timestep, timesteps) -> reward
+    "time_limit_bootstrap": False,  # bootstrap at timeout termination (episode truncation)
+
+    "experiment": {
+        "directory": "",            # experiment's parent directory
+        "experiment_name": "",      # experiment name
+        "write_interval": "auto",   # TensorBoard writing interval (timesteps)
+
+        "checkpoint_interval": "auto",      # interval for checkpoints (timesteps)
+        "store_separately": False,          # whether to store checkpoints separately
+
+        "wandb": False,             # whether to use Weights & Biases
+        "wandb_kwargs": {}          # wandb kwargs (see https://docs.wandb.ai/ref/python/init)
+    }
+}
 
 # ADD TRAIN 
 

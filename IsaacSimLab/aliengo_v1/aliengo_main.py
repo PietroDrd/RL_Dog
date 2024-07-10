@@ -44,13 +44,13 @@ def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
     env_cfg = AliengoEnvCfg()
     env = ManagerBasedRLEnv(cfg=env_cfg)
-    #agent = PPO_v1(env=env, device=device)
+    agent = PPO_v1(env=env, device=device) # TO ADJUST!!
     
     #obs, _ = env.reset()
     # try with predefined skrl trained 
     #agent.train_sequential()
     import time
-    time.sleep(25)
+    time.sleep(20)
     env.close()
 
 
