@@ -1,0 +1,15 @@
+
+############## THIS IS AN EXAMPLE #######################
+
+conda activate isaacenv_
+cd 
+cd IsaacLab_
+
+./isaaclab.sh -p source/standalone/tools/convert_urdf.py \
+  ~/RL_Dog/assets/URDF/aliengo_color.urdf \
+  source/extensions/omni.isaac.lab_assets/data/Robots/Unitree/aliengo_color.usd \
+  --merge-joints \
+  --make-instanceable
+
+
+#### COLORS ARE NOT DISPLAYED (IDK WHY)

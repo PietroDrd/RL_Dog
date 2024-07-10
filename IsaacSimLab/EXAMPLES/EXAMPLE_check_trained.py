@@ -101,7 +101,7 @@ class MySceneCfg(InteractiveSceneCfg):
     )
 
     # add robot
-    robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = AliengoCFG_Color.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     # sensors
     height_scanner = RayCasterCfg(

@@ -20,11 +20,11 @@ from omni.isaac.lab.managers import RewardTermCfg as RewTerm
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
 
-from omni.isaac.lab.scene import InteractiveSceneCfg
-from omni.isaac.lab.utils import configclass
+from omni.isaac.lab.utils.noise import AdditiveUniformNoiseCfg as Unoise
+from omni.isaac.lab.utils       import configclass
 
-from omni.isaac.lab.utils.noise   import AdditiveUniformNoiseCfg as Unoise
-from omni.isaac.lab.terrains      import TerrainImporterCfg
+from omni.isaac.lab.scene       import InteractiveSceneCfg
+from omni.isaac.lab.terrains    import TerrainImporterCfg
 from omni.isaac.lab.terrains.config.rough   import ROUGH_TERRAINS_CFG
 from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black #modified in IsaacLab_
 #from unitree import AliengoCFG_Black, AliengoCFG_Color
@@ -40,16 +40,16 @@ from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_
 
 """
 
+global ROUGH_TERRAIN
+ROUGH_TERRAIN = 1
 
 ######### SCENE #########
 
 @configclass
 class BaseSceneCfg(InteractiveSceneCfg):
-
-    rough_terrain = 0
-
+    
     # GROUND - TERRAIN
-    if rough_terrain:
+    if ROUGH_TERRAIN:
         terrain = TerrainImporterCfg(
             prim_path="/World/ground",
             terrain_type="generator",
@@ -71,9 +71,9 @@ class BaseSceneCfg(InteractiveSceneCfg):
         )
 
     # ROBOT
-    robot: ArticulationCfg = UNITREE_AlienGo_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
     # Alternatively, if using the commented code from the previous example
-    # robot_cfg = UNITREE_AlienGo_CFG.copy()
+    # robot_cfg = AliengoCFG_Black.copy()
     # robot_cfg.prim_path = "/World/envs/env_.*/Robot"
     # robot = Articulation(cfg=robot_cfg)
 
@@ -104,6 +104,7 @@ def constant_commands(env: ManagerBasedEnv, walk=False) -> torch.Tensor:
     dir = [1, 0, 0] if walk else [0, 0, 0]
     return torch.tensor([dir], device=env.device).repeat(env.num_envs, 1)
 
+@configclass
 class CommandsCfg:
     """Command terms for the MDP."""
 
@@ -112,6 +113,7 @@ class CommandsCfg:
 
 
 ### OBSERVATIONS ###
+@configclass
 class ObservationsCfg:
     """Observation specifications for the MDP."""
 
@@ -154,30 +156,40 @@ class EventCfg:
 
 
 ### REWARDS ###
+
+# Check --> /home/rl_sim/RL_Dog/omni/isaac/lab/envs/mdp/rewards.py
+
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Constant running reward
     alive = RewTerm(func=mdp.is_alive, weight=1.0)
-
     # (2) Failure penalty
     terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
 
-    # (3) Primary task: keep body raised from the floor
+    # (3) Primary task: keep body raised from the floor --> NEED FLAT TERRAIN (height is wrt world frame)
     body_height = RewTerm(
-        func=mdp.base_pos_z,
-        weight=1.1,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["trunk"]), "target": 0.35},
+        func=mdp.base_height_l2,
+        weight=0.2,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
     )
     
     # (4) Shaping tasks: Keep body almost horizontal
-    horiz_orient = RewTerm(
-        func=mdp.root_quat_w,
-        weight=0.8,
-        params={"target": [1, 0, 0, 0]} # Robot's BaseLink x_axis // target ---> be straight
-    )
+    horiz_orient = RewTerm(func=mdp.flat_orientation_l2, weight=0.1)
     # another sol is to have the projected_grav as [0, 0, -g] --> [0, 0, -1] --> q = [0.707, 0, 0, -0.707]
+
+    #FROM A GO_2 SCRIPT ONLINE
+    # -- task
+    track_lin_vel_xy_exp = RewTerm(
+        func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+    )
+    track_ang_vel_z_exp = RewTerm(
+        func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+    )
+    # -- penalties
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
+    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
 
 @configclass
 class TerminationsCfg:
@@ -215,3 +227,6 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
 
         # viewer settings
         self.viewer.eye = (6.0, 0.0, 4.5)
+
+        if ROUGH_TERRAIN:
+            self.sim.physics_material = self.scene.terrain.physics_material

@@ -44,7 +44,7 @@ app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
 from omni.isaac.lab.envs     import ManagerBasedRLEnv
-from aliengo_env import AliengoEnvCfg, CommandsCfg, ObservationsCfg
+from aliengo_env import AliengoEnvCfg
 
 from aliengo_ppo import PPO_v1
 
@@ -57,7 +57,7 @@ def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
     env_cfg = AliengoEnvCfg(args=args_cli, device=device, rough_terrain=ROUGH_TERRAIN)
     env = ManagerBasedRLEnv(cfg=env_cfg)
-    env.reset()
+    #env.reset()
     agent = PPO_v1(env=env, device=device)
     
     # try with predefined skrl trained 

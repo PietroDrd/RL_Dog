@@ -29,11 +29,11 @@ from omni.isaac.lab.managers import RewardTermCfg as RewTerm
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
 
-from omni.isaac.lab.scene import InteractiveSceneCfg
-from omni.isaac.lab.utils import configclass
+from omni.isaac.lab.utils.noise import AdditiveUniformNoiseCfg as Unoise
+from omni.isaac.lab.utils       import configclass
 
-from omni.isaac.lab.utils.noise   import AdditiveUniformNoiseCfg as Unoise
-from omni.isaac.lab.terrains      import TerrainImporterCfg
+from omni.isaac.lab.scene       import InteractiveSceneCfg
+from omni.isaac.lab.terrains    import TerrainImporterCfg
 from omni.isaac.lab.terrains.config.rough   import ROUGH_TERRAINS_CFG
 from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black  #modified in IsaacLab_ WORKS 
 #from unitree import AliengoCFG_Black, AliengoCFG_Color
@@ -59,19 +59,20 @@ class BaseSceneCfg(InteractiveSceneCfg):
 
     def __init__(self, rough_terrain=0, num_envs=16, env_spacing=2.5):
 
-        self.rough_terrain  = rough_terrain
-        self.terrain        = self.terrain_()
-        self.robot          = self.robot_()
-        self.light          = self.light_()
-        self.dome_light     = self.dome_light_()
-        self.num_envs       = num_envs
-        self.env_spacing    = env_spacing
+        # do NOT declare variables/parameters exept for Assets, InteractiveScene ..., they will generate error
+
+        self.terrain        = self._terrain(rough_terrain=rough_terrain)
+        self.robot          = self._robot()
+        self.light          = self._light()
+        self.dome_light     = self._dome_light()
+        self.num_envs       = num_envs         # Required
+        self.env_spacing    = env_spacing      # Required
 
     #############################################
 
     ### GROUND - TERRAIN ###
-    def terrain_(self):
-        if self.rough_terrain:
+    def _terrain(self, rough_terrain=0):
+        if rough_terrain:
             return TerrainImporterCfg(
                 prim_path="/World/ground",
                 terrain_type="generator",
@@ -93,27 +94,19 @@ class BaseSceneCfg(InteractiveSceneCfg):
             )
     
     ### ROBOT ###
-    def robot_(self):             # needed 
-        return AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")  # obj_type: Articulation(Rigid(Asset))
+    def _robot(self):             # needed 
+        robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot") # obj_type: Articulation(Rigid(Asset))
+        return robot
         # ``{ENV_REGEX_NS}/Robot`` will be replaced with ``/World/envs/env_.*/Robot``
-        
-        ### it's almost equal to: ### 
-        #robot_cfg = AliengoCFG_Black.copy()
-        #robot_cfg.prim_path = "/World/envs/env_.*/Robot"
-        #robot_cfg.prim_path = "/World/Origin.*/Robot"
-        #robot = Articulation(cfg=robot_cfg)
-
-    # or the below one, but you have to modify __init__
     # robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
-
     
     ### LIGHTS ###
-    def light_(self):
+    def _light(self):
         return AssetBaseCfg(
             prim_path="/World/light",
             spawn=sim_utils.DistantLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
         )
-    def dome_light_(self):
+    def _dome_light(self):
         return AssetBaseCfg(
             prim_path="/World/DomeLight",
             spawn=sim_utils.DomeLightCfg(color=(0.9, 0.9, 0.9), intensity=400.0),
@@ -131,6 +124,7 @@ class ActionsCfg:
 
 
 ### COMANDS ###
+@configclass
 class CommandsCfg:
     """Command terms for the MDP. HIGH LEVEL GOALS --> e.g., velocity, task to do"""
 
@@ -140,6 +134,7 @@ class CommandsCfg:
 
 
 ### OBSERVATIONS ###
+@configclass
 class ObservationsCfg:
     """Observation specifications for the MDP."""
 
@@ -174,18 +169,14 @@ class ObservationsCfg:
                 self.concatenate_terms = True   # IDK
 
     # observation groups
-    def __init__(self, velocity_cmd = [0,0,0]):
+    def __init__(self, velocity_cmd = [0,0,0]):     #for redundancy/security, it already receives arguments
         self.policy = self.PolicyCfg(velocity_cmd=velocity_cmd)
 
 ### EVENTS ###
 @configclass
 class EventCfg:
     """Configuration for events."""
-
-    def __init__(self):
-        self.reset_scene = self.reset_scene_()
-    def reset_scene_(self):
-        return EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+    reset_scene = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
 
 ### REWARDS ###
 @configclass
@@ -202,7 +193,7 @@ class RewardsCfg:
     body_height = RewTerm(
         func=mdp.base_pos_z,
         weight=1.1,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["trunk"]), "target": 0.35},
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target": 0.35},
     )
     
     # (4) Shaping tasks: Keep body almost horizontal
@@ -235,17 +226,17 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
 
     def __init__(self, args, device, rough_terrain=0):
         super().__init__()
-        self.args = args    #num_envs, env_spacing, walk
-        self.walk = args.walk
-        self.num_envs = args.num_envs
-        self.env_spacing = args.env_spacing
-        self.rough_terrain = rough_terrain
+        # self.args = args    #num_envs, env_spacing, walk
+        # self.walk = args.walk
+        # self.num_envs = args.num_envs
+        # self.env_spacing = args.env_spacing
+        # self.rough_terrain = rough_terrain
 
-        self.device   = device
+        # self.device   = device
 
-        self.scene          = BaseSceneCfg(rough_terrain=rough_terrain, num_envs=self.num_envs, env_spacing=self.env_spacing)
+        self.scene          = BaseSceneCfg(rough_terrain=rough_terrain, num_envs=args.num_envs, env_spacing=args.env_spacing)
         self.actions        = ActionsCfg()
-        self.commands       = CommandsCfg(walk=self.walk, num_envs=self.num_envs, device=self.device) 
+        self.commands       = CommandsCfg(walk=args.walk, num_envs=args.num_envs, device=device) 
         self.observations   = ObservationsCfg(self.commands.velocity_cmd)
  
         self.events         = EventCfg()
@@ -253,9 +244,7 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.terminations   = TerminationsCfg()
         self.curriculum     = CurriculumCfg()
 
-        self.initialize_environment()
-
-    def initialize_environment(self):
+    def __post_init__(self):
         """Initialize additional environment settings."""
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
@@ -264,26 +253,7 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         # viewer settings
         self.viewer.eye = (6.0, 0.0, 4.5)
 
-        if self.rough_terrain:
+        if False:  # it war: rough_terrain, but generated errors since not passed and cannot be passed
             self.sim.physics_material = self.scene.terrain.physics_material
         # update sensor update periods
         # tick all the sensors based on the smallest update period (physics update period)
-
-
-
-
-
-
-
-    # def __post_init__(self) -> None:
-    #     self.decimation = 4  # env decimation -> 50 Hz control
-    #     self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
-    #     self.sim.render_interval = self.decimation
-
-    #     # viewer settings
-    #     self.viewer.eye = (6.0, 0.0, 4.5)
-
-    #     if self.rough_terrain:
-    #         self.sim.physics_material = self.scene.terrain.physics_material
-    #     # update sensor update periods
-    #     # tick all the sensors based on the smallest update period (physics update period)

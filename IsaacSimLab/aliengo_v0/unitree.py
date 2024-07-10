@@ -137,7 +137,6 @@ AliengoCFG_Black = ArticulationCfg(
             friction=0.0,
         ),
     },
-    /home/rl_sim/IsaacLab_/source/exten
 )
 
 AliengoCFG_Color = ArticulationCfg(
