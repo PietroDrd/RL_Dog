@@ -41,12 +41,20 @@ from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_
 """
 
 global ROUGH_TERRAIN
-ROUGH_TERRAIN = 1
+ROUGH_TERRAIN = 0
 
 ######### SCENE #########
 
 @configclass
 class BaseSceneCfg(InteractiveSceneCfg):
+
+    """
+    .. note::
+        The adding of entities to the scene is sensitive to the order of the attributes in the configuration.
+        Please make sure to add the entities in the order you want them to be added to the scene.
+        The recommended order of specification is terrain, physics-related assets (articulations and rigid bodies),
+        sensors and non-physics-related assets (lights). 
+    """
     
     # GROUND - TERRAIN
     if ROUGH_TERRAIN:

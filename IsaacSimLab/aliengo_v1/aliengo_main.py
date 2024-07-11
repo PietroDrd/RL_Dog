@@ -14,7 +14,6 @@ Launch Isaac Sim Simulator first.
 
 from omni.isaac.lab.app import AppLauncher
 
-
 import argparse
 parser = argparse.ArgumentParser(description='AlienGo_v1 Environment Configuration')
 parser.add_argument('--num_envs',       type=int,               default=16,     help='Number of environments')
@@ -44,17 +43,18 @@ def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
     env_cfg = AliengoEnvCfg()
     env = ManagerBasedRLEnv(cfg=env_cfg)
-    agent = PPO_v1(env=env, device=device) # TO ADJUST!!
+    agent = PPO_v1(env=env, device=device, verbose=1)
     
-    #obs, _ = env.reset()
+    #obs, _extras_ = env.get_  # .reset()
     # try with predefined skrl trained 
-    #agent.train_sequential()
+    
+    #agent.train_mine_easy()
+    agent.train_sequential()
+    #agent.train_parallel()
+
     import time
     time.sleep(20)
     env.close()
-
-
-
 
 
 if __name__ == "__main__":

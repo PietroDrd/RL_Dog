@@ -1,6 +1,7 @@
 ### GENERAL ###
 
 import torch
+import torch.nn as nn
 
 ### SKRL-RL STUFF ###
 
@@ -9,11 +10,17 @@ from skrl.envs.wrappers.torch import Wrapper, wrap_env
         # equal to --> from omni.isaac.lab_tasks.utils.wrappers.skrl import SkrlVecEnvWrapper
 
 from skrl.resources.preprocessors.torch import RunningStandardScaler
+from skrl.resources.schedulers.torch import KLAdaptiveRL
 from skrl.memories.torch import RandomMemory
+
 from skrl.agents.torch import Agent
 from skrl.models.torch import Model, GaussianMixin, DeterministicMixin
+
 from skrl.trainers.torch import Trainer, SequentialTrainer, ParallelTrainer, StepTrainer 
 from skrl.utils import set_seed
+
+# seed for reproducibility
+set_seed()  # e.g. `set_seed(42)` for fixed seed
 
 ### ISAACLAB CLASSES ###
 from omni.isaac.lab.envs     import ManagerBasedRLEnv
@@ -25,53 +32,89 @@ from omni.isaac.lab_tasks.utils.wrappers.skrl import procss_skrl_cfg
 process_skrl_cfg(ALIENGO_ENV_CFG)   # IF ANY (must adapt it)
 """
 
+# define shared model (stochastic and deterministic models) using mixins
+class Shared(GaussianMixin, DeterministicMixin, Model):
+    def __init__(self, observation_space, action_space, device, clip_actions=False,
+                 clip_log_std=True, min_log_std=-20, max_log_std=2, reduction="sum"):
+        Model.__init__(self, observation_space, action_space, device)
+        GaussianMixin.__init__(self, clip_actions, clip_log_std, min_log_std, max_log_std, reduction)
+        DeterministicMixin.__init__(self, clip_actions)
+
+        """
+        clip:   Clipping actions means restricting the action values to be within the bounds defined by the action space. 
+                This ensures that the actions taken by the agent are valid within the defined environment's action space.
+                Clipping the log_of_STD ensures that values for the log STD do not goes below or above specified thresholds.
+
+        reduction: The reduction method specifies how to aggregate the log probability densities when computing the total log probability.
+        """
+
+        self.net = nn.Sequential(nn.Linear(self.num_observations, 256), # activ fcns were ELU
+                                 nn.ReLU(),
+                                 nn.Linear(256, 128),
+                                 nn.ReLU(),
+                                 nn.Linear(128, 64),
+                                 nn.ReLU())
+
+        self.mean_layer = nn.Linear(64, self.num_actions)
+        self.log_std_parameter = nn.Parameter(torch.zeros(self.num_actions))
+
+        self.value_layer = nn.Linear(64, 1)
+
+    def act(self, inputs, role):
+        if role == "policy":
+            return GaussianMixin.act(self, inputs, role)
+        elif role == "value":
+            return DeterministicMixin.act(self, inputs, role)
+
+    def compute(self, inputs, role):
+        if role == "policy":
+            self._shared_output = self.net(inputs["states"])
+            return self.mean_layer(self._shared_output), self.log_std_parameter, {}
+        elif role == "value":
+            shared_output = self.net(inputs["states"]) if self._shared_output is None else self._shared_output
+            self._shared_output = None
+            return self.value_layer(shared_output), {}
+
+
 class PPO_v1:
-    def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cpu"):
-        self.env = wrap_env(env)    # SKRL: wrapper = "auto", by default,  otherwise--> "isaaclab"
+    def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cpu", verbose=0):
+        self.env = wrap_env(env, verbose=verbose)    # SKRL: wrapper = "auto", by default,  otherwise--> "isaaclab"
         self.config = config
         self.device = device
         self.num_envs = env.num_envs   #needed for MEMORY of PPO, num_envs comes from "args" of the env object
         self.agent = self._create_agent()
-        
-
-    def _create_model_nn(self):
-
-        #  NO, PPO REQUIRES A SHARED (Stochast+Determ) Models -->class Shared(GaussianMixin, DeterministicMixin, Model):
-        #  IMPLEMENT IT FOR FUCK SAKE
-        
-        # return {
-        #     "policy": torch.nn.Sequential(
-        #         torch.nn.Linear(self.env.observation_space.shape[0], 256),
-        #         torch.nn.ReLU(),
-        #         torch.nn.Linear(256, 128),
-        #         torch.nn.ReLU(),
-        #         torch.nn.Linear(128, 64),
-        #         torch.nn.ReLU(),
-        #         torch.nn.Linear(64, self.env.action_space.shape[0])
-        #     )
-        # }
-        self.no = None
-        return pass
-    
-    def _create_preprocessor(self):
-        return {
-            "observation_scaler": RunningStandardScaler(shape=self.env.observation_space.shape)
-        }
 
     def _create_agent(self):
-        model_nn_ = self._create_model_nn()
-        preprocessor_ = self._create_preprocessor()
+
+        #Create the model: In --> feedbacks/states , Out --> Actions/Actuators
+        model_nn_ = {}
+        model_nn_["policy"] = Shared(self.env.observation_space, self.env.action_space, self.device)
+        model_nn_["value"] = model_nn_["policy"]
+
+        # Adjusts Learning Rate
+        # self.config["learning_rate_scheduler"] = KLAdaptiveRL   # Has problems with "verbose" param --> commented
+        # self.config["learning_rate_scheduler_kwargs"] = {"kl_threshold": 0.008}
+
+        # Standardize the input data by removing the mean and scaling
+        self.config["state_preprocessor"] = RunningStandardScaler
+        self.config["state_preprocessor_kwargs"] = {"size": self.env.observation_space, "device": self.device}
+        self.config["value_preprocessor"] = RunningStandardScaler
+        self.config["value_preprocessor_kwargs"] = {"size": 1, "device": self.device}
         
         # instantiate a memory as rollout buffer (any memory can be used for this)
-        memory_rndm_ = RandomMemory(memory_size=24, num_envs=self.num_envs, device=self.device)
+        mem_size = 24
+        batch_dim = 6
+        memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
+        self.config["rollouts"] = mem_size
+        self.config["mini_batches"] = min(mem_size * batch_dim / 48, 2 )# 48Gb VRAM of the RTX A6000
 
         agent = PPO(
             models=model_nn_,
-            preprocessor = preprocessor_,
             memory=memory_rndm_,
+            observation_space=self.env.observation_space,
+            action_space=self.env.action_space,
             cfg=self.config,
-            env=self.env,
-            device=self.device
+            device=self.device,
         )
         return agent
     
@@ -98,6 +141,8 @@ class PPO_v1:
         cfg_trainer = {"timesteps": timesteps, "headless": headless}
         trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
         trainer.train() 
+
+#########################################################################################
 
 
 # just to have a look about the values, this is ignored by the code since its after 
