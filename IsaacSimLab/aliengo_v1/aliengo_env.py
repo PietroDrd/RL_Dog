@@ -80,10 +80,6 @@ class BaseSceneCfg(InteractiveSceneCfg):
 
     # ROBOT
     robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
-    # Alternatively, if using the commented code from the previous example
-    # robot_cfg = AliengoCFG_Black.copy()
-    # robot_cfg.prim_path = "/World/envs/env_.*/Robot"
-    # robot = Articulation(cfg=robot_cfg)
 
     # LIGHTS
     light = AssetBaseCfg(

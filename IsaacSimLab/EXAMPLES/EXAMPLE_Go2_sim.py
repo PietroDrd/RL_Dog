@@ -12,6 +12,10 @@ import time
 import os
 import threading
 
+"""
+https://github.com/abizovnuralem/go2_omniverse/blob/master/omniverse_sim.py
+"""
+
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with RSL-RL.")

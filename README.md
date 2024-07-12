@@ -13,6 +13,11 @@ Our methodology integrates several advanced technologies and approaches:
 - **Python + PyTorch**: Our primary programming languages and framework for development and deep learning.
   
 ### Workstation Setup
+
+[![IsaacSim](https://img.shields.io/badge/IsaacSim-4.0-silver.svg)](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html)
+[![Python](https://img.shields.io/badge/python-3.10-blue.svg)](https://docs.python.org/3/whatsnew/3.10.html)
+[![Linux platform](https://img.shields.io/badge/platform-linux--64-orange.svg)](https://releases.ubuntu.com/22.04/)
+
 - **Isaac Lab**: NVIDIA's [Isaac Lab](https://isaac-sim.github.io/IsaacLab/) provided the high-performance simulation environment necessary for training our models. Refer to the [Orbit](https://isaac-orbit.github.io/) and [Isaac Sim](https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html) pages for more information. <br>
 
 ### Laptop Setup (lower grade simulations)

@@ -51,6 +51,9 @@ import omni.isaac.lab_tasks.manager_based.locomotion.velocity.mdp as mdp
 
 from robots.g1.config import G1_CFG
 
+"""
+https://github.com/abizovnuralem/go2_omniverse/blob/master/custom_rl_env.py
+"""
 
 base_command = []
 
