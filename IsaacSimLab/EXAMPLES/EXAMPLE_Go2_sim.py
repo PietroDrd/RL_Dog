@@ -34,11 +34,9 @@ parser.add_argument("--robot_amount", type=int, default=1, help="Setup the robot
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 
-
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
-
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -46,7 +44,6 @@ simulation_app = app_launcher.app
 
 
 import omni
-
 
 ext_manager = omni.kit.app.get_app().get_extension_manager()
 ext_manager.set_extension_enabled_immediate("omni.isaac.ros2_bridge", True)
@@ -137,14 +134,11 @@ def setup_custom_env():
     except:
         print("Error loading custom environment. You should download custom envs folder from: https://drive.google.com/drive/folders/1vVGuO1KIX1K6mD6mBHDZGm9nk2vaRyj3?usp=sharing")
 
-
 def cmd_vel_cb(msg, num_robot):
     x = msg.linear.x
     y = msg.linear.y
     z = msg.angular.z
     custom_rl_env.base_command[num_robot] = [x, y, z]
-
-
 
 def add_cmd_sub(num_envs):
     node_test = rclpy.create_node('position_velocity_publisher')
@@ -153,8 +147,6 @@ def add_cmd_sub(num_envs):
     # Spin in a separate thread
     thread = threading.Thread(target=rclpy.spin, args=(node_test, ), daemon=True)
     thread.start()
-
-
 
 def specify_cmd_for_robots(numv_envs):
     base_cmd = []
@@ -202,6 +194,9 @@ def run_sim():
 
     resume_path = get_checkpoint_path(log_root_path, agent_cfg["load_run"], agent_cfg["load_checkpoint"])
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
+
+
+
 
     # load previously trained model
     ppo_runner = OnPolicyRunner(env, agent_cfg, log_dir=None, device=agent_cfg["device"])

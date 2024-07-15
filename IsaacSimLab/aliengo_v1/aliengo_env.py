@@ -238,7 +238,7 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 20           # maiybe is needed
+        self.episode_length_s = 20 
         self.sim.physics_material = self.scene.terrain.physics_material
 
         # viewer settings

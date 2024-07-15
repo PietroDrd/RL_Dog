@@ -50,16 +50,24 @@ import gymnasium as gym
     1 -> Wrap, Register and Make the environment
     2 -> Train the Policy
 """
-MODE = 0
+MODE = 1
+
+
 
 def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
     env_cfg = AliengoEnvCfg()
     env_cfg.scene.num_envs = args_cli.num_envs
+
+    gym.register(
+        id=args_cli.task,
+        entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+        kwargs={'cfg': AliengoEnvCfg}
+    )
     
     match MODE:
         case 0: mode0_aka_check(env_cfg)
-        case 1: mode1_aka_doEnv(env_cfg)
+        case 1: mode1_aka_doEnv(env_cfg, device)
         case 2: mode2_aka_train(env_cfg)
     print("[INFO]: Simulation END ---> Closing IsaacSim")
 
@@ -81,17 +89,23 @@ def mode0_aka_check(env_cfg: ManagerBasedRLEnvCfg):
     env.close()
 
 from omni.isaac.lab_tasks.utils import parse_env_cfg
-def mode1_aka_doEnv(env_cfg: ManagerBasedRLEnvCfg):
-    gym.register(
-            id='AlienGo-v0',
-            entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-            kwargs={'cfg': AliengoEnvCfg}
-        )
-
+def mode1_aka_doEnv(env_cfg: ManagerBasedRLEnvCfg, device):
+    
     env = gym.make(args_cli.task, env_cfg=env_cfg)
+    # agent = PPO_v1(env=env, device=device, verbose=1)
 
-    import time
-    time.sleep(5)
+    # count = 0
+    # while simulation_app.is_running():
+    #     with torch.inference_mode():
+    #         # reset
+    #         if count % 1200 == 0:
+    #             count = 0
+    #             env.reset()
+    #             print("-" * 80)
+    #             print("[INFO]: Resetting environment...")
+    #         #joint_efforts = torch.randn_like(env.action_manager.action)
+    #         #obs, rew, terminated, truncated, info = env.step(joint_efforts)
+    #         count += 1
     env.close()
 
 def mode2_aka_train(env_cfg: ManagerBasedRLEnvCfg):
