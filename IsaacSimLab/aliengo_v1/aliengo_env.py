@@ -12,6 +12,7 @@ import omni.isaac.lab.envs.mdp   as mdp
 from omni.isaac.lab.envs     import ManagerBasedEnv, ManagerBasedEnvCfg, ManagerBasedRLEnv, ManagerBasedRLEnvCfg
 from omni.isaac.lab.assets   import ArticulationCfg, AssetBaseCfg
 from omni.isaac.lab.assets   import Articulation
+from omni.isaac.lab.sensors  import ContactSensorCfg, RayCasterCfg, patterns
 
 from omni.isaac.lab.managers import EventTermCfg as EventTerm
 from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
@@ -41,10 +42,15 @@ from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_
 """
 
 global ROUGH_TERRAIN
-ROUGH_TERRAIN = 0
+global HEIGHT_SCAN 
+
+ROUGH_TERRAIN = 1
+HEIGHT_SCAN = 0
+
+
 
 ######### SCENE #########
-
+terrain_type = "generator" if ROUGH_TERRAIN else "plane"
 @configclass
 class BaseSceneCfg(InteractiveSceneCfg):
 
@@ -55,31 +61,36 @@ class BaseSceneCfg(InteractiveSceneCfg):
         The recommended order of specification is terrain, physics-related assets (articulations and rigid bodies),
         sensors and non-physics-related assets (lights). 
     """
-    
-    # GROUND - TERRAIN
-    if ROUGH_TERRAIN:
-        terrain = TerrainImporterCfg(
-            prim_path="/World/ground",
-            terrain_type="generator",
-            terrain_generator=ROUGH_TERRAINS_CFG,
-            max_init_terrain_level=5,
-            collision_group=-1,
-            physics_material=sim_utils.RigidBodyMaterialCfg(
-                friction_combine_mode="multiply",
-                restitution_combine_mode="multiply",
-                static_friction=1.0,
-                dynamic_friction=1.0,
-            ),
-            debug_vis=False,
-        )
-    else:
-        terrain = AssetBaseCfg(
-            prim_path="/World/ground",
-            spawn=sim_utils.GroundPlaneCfg(size=(100.0, 100.0)),
-        )
+
+    terrain = TerrainImporterCfg(
+        prim_path="/World/ground",
+        terrain_type= terrain_type,
+        terrain_generator=ROUGH_TERRAINS_CFG,
+        max_init_terrain_level=5,
+        collision_group=-1,
+        physics_material=sim_utils.RigidBodyMaterialCfg(
+            friction_combine_mode="multiply",
+            restitution_combine_mode="multiply",
+            static_friction=1.0,
+            dynamic_friction=1.0,
+        ),
+        debug_vis=False,
+    )
+
 
     # ROBOT
     robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+    # HEIGHT SCAN (robot does not has it, however in sim can lean to a faster training)
+    if HEIGHT_SCAN:
+        height_scanner= RayCasterCfg(
+            prim_path = "{ENV_REGEX_NS}/Robot/base",
+            offset = RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+            attach_yaW_only = True,
+            pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=(1.0, 1.0)),
+            debug_vis= False,
+            mesh_prim_opaths = ["/World/ground"],
+        )
 
     # LIGHTS
     light = AssetBaseCfg(
@@ -145,6 +156,13 @@ class ObservationsCfg:
         floor_dis = ObsTerm(func=mdp.base_pos_z,    noise=Unoise(n_min=-0.02, n_max=0.02))
         actions   = ObsTerm(func=mdp.last_action)
 
+        if HEIGHT_SCAN:
+            height_scan = ObsTerm(
+                func=mdp.height_scan,
+                params={"sensor_cfg": SceneEntityCfg("height_Scanner")},
+                clip=(-1.0, 1.0),
+            )
+
         def __post_init__(self):
             self.enable_corruption = True   # IDK
             self.concatenate_terms = True   # IDK
@@ -168,38 +186,30 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Constant running reward
-    alive = RewTerm(func=mdp.is_alive, weight=1.0)
+    is_alive = RewTerm(func=mdp.is_alive, weight=1.0)
     # (2) Failure penalty
-    terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
+    is_terminated = RewTerm(func=mdp.is_terminated, weight=-2.0)
 
     # (3) Primary task: keep body raised from the floor --> NEED FLAT TERRAIN (height is wrt world frame)
-    body_height = RewTerm(
+    base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
         weight=0.2,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
     )
     
     # (4) Shaping tasks: Keep body almost horizontal
-    horiz_orient = RewTerm(func=mdp.flat_orientation_l2, weight=0.1)
-    # another sol is to have the projected_grav as [0, 0, -g] --> [0, 0, -1] --> q = [0.707, 0, 0, -0.707]
-
-    #FROM A GO_2 SCRIPT ONLINE
-    # -- task
-    track_lin_vel_xy_exp = RewTerm(
-        func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
-    )
-    track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
-    )
-    # -- penalties
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
-    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.1)
 
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    #other
+
+    # base_contact = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
+    # )
+
     
 @configclass
 class CurriculumCfg:
@@ -228,9 +238,14 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
         self.sim.render_interval = self.decimation
+        self.episode_length_s = 20           # maiybe is needed
+        self.sim.physics_material = self.scene.terrain.physics_material
 
         # viewer settings
         self.viewer.eye = (6.0, 0.0, 4.5)
 
         if ROUGH_TERRAIN:
             self.sim.physics_material = self.scene.terrain.physics_material
+        if HEIGHT_SCAN:
+            if self.scene.height_scanner is not None:
+                self.scene.height_scanner.update_period = self.decimation * self.sim.dt

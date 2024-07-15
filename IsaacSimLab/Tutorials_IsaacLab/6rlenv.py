@@ -1,6 +1,6 @@
 """
 
-    # Usage
+    conda activate IsaacLab_
     cd
     cd IsaacLab_
     ./isaaclab.sh -p ~/RL_Dog/IsaacSimLab/Tutorials_IsaacLab/6rlenv.py
