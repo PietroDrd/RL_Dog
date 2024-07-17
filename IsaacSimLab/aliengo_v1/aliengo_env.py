@@ -2,13 +2,6 @@
 import math
 import torch
 
-import omni.isaac.lab.sim        as sim_utils
-import omni.isaac.lab.envs.mdp   as mdp
-
-##
-#########   import omni.isaac.lab_tasks.manager_based.locomotion.velocity.mdp as mdp    #  !!!!!!!!!!!
-##
-
 from omni.isaac.lab.envs     import ManagerBasedEnv, ManagerBasedEnvCfg, ManagerBasedRLEnv, ManagerBasedRLEnvCfg
 from omni.isaac.lab.assets   import ArticulationCfg, AssetBaseCfg
 from omni.isaac.lab.assets   import Articulation
@@ -28,7 +21,11 @@ from omni.isaac.lab.scene       import InteractiveSceneCfg
 from omni.isaac.lab.terrains    import TerrainImporterCfg
 from omni.isaac.lab.terrains.config.rough   import ROUGH_TERRAINS_CFG
 from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black #modified in IsaacLab_
-#from unitree import AliengoCFG_Black, AliengoCFG_Color
+
+import omni.isaac.lab.sim        as sim_utils
+import omni.isaac.lab_tasks.manager_based.locomotion.velocity.mdp as mdp            # contains omni.isaac.lab.envs.mdp
+
+###-------------------------------------------------------------------------------------###
 
 """
     ALIENGO_ENV.PY script STRUCTURE:
@@ -45,8 +42,7 @@ global ROUGH_TERRAIN
 global HEIGHT_SCAN 
 
 ROUGH_TERRAIN = 1
-HEIGHT_SCAN = 0
-
+HEIGHT_SCAN = 1
 
 
 ######### SCENE #########
@@ -55,7 +51,7 @@ terrain_type = "generator" if ROUGH_TERRAIN else "plane"
 class BaseSceneCfg(InteractiveSceneCfg):
 
     """
-    .. note::
+        note::
         The adding of entities to the scene is sensitive to the order of the attributes in the configuration.
         Please make sure to add the entities in the order you want them to be added to the scene.
         The recommended order of specification is terrain, physics-related assets (articulations and rigid bodies),
@@ -77,19 +73,20 @@ class BaseSceneCfg(InteractiveSceneCfg):
         debug_vis=False,
     )
 
-
     # ROBOT
     robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+    contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
     # HEIGHT SCAN (robot does not has it, however in sim can lean to a faster training)
     if HEIGHT_SCAN:
         height_scanner= RayCasterCfg(
             prim_path = "{ENV_REGEX_NS}/Robot/base",
             offset = RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
-            attach_yaW_only = True,
+            attach_yaw_only = True,
             pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=(1.0, 1.0)),
             debug_vis= False,
-            mesh_prim_opaths = ["/World/ground"],
+            mesh_prim_paths = ["/World/ground"],
         )
 
     # LIGHTS
@@ -109,7 +106,7 @@ class BaseSceneCfg(InteractiveSceneCfg):
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.25, use_default_offset=True)
 
 
 ### COMANDS ###
@@ -123,8 +120,19 @@ def constant_commands(env: ManagerBasedEnv, walk=False) -> torch.Tensor:
 class CommandsCfg:
     """Command terms for the MDP."""
 
-    # no commands for this MDP
-    null = mdp.NullCommandCfg()
+    base_velocity = mdp.UniformVelocityCommandCfg(
+        asset_name="robot",
+        resampling_time_range=(0.0, 0.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=True,
+        heading_control_stiffness=0.5,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
+        ),
+    )
+    # Null Velocity, direction and strength are given by external function "constant_commands"
 
 
 ### OBSERVATIONS ###
@@ -142,7 +150,7 @@ class ObservationsCfg:
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-        #velocity_commands = ObsTerm(func=constant_commands(walk=False))  # wrap it in a function
+        velocity_commands = ObsTerm(func=constant_commands)  # wrap it in a function
         """
             If you didn't use a lambda function and directly passed the tensor, like this:
                 self.velocity_commands = ObsTerm(func=self.cmnd.velocity_cmd)
@@ -159,7 +167,7 @@ class ObservationsCfg:
         if HEIGHT_SCAN:
             height_scan = ObsTerm(
                 func=mdp.height_scan,
-                params={"sensor_cfg": SceneEntityCfg("height_Scanner")},
+                params={"sensor_cfg": SceneEntityCfg("height_scanner")},
                 clip=(-1.0, 1.0),
             )
 
@@ -179,26 +187,52 @@ class EventCfg:
 
 ### REWARDS ###
 
-# Check --> /home/rl_sim/RL_Dog/omni/isaac/lab/envs/mdp/rewards.py
-
 @configclass
 class RewardsCfg:
-    """Reward terms for the MDP."""
+    """Reward terms for the MDP."""         # look in: mdp.rewards.py
 
     # (1) Constant running reward
-    is_alive = RewTerm(func=mdp.is_alive, weight=1.0)
+    #is_alive = RewTerm(func=mdp.is_alive, weight=1.0)
     # (2) Failure penalty
     is_terminated = RewTerm(func=mdp.is_terminated, weight=-2.0)
 
     # (3) Primary task: keep body raised from the floor --> NEED FLAT TERRAIN (height is wrt world frame)
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=0.2,
+        weight=0.6,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
     )
     
     # (4) Shaping tasks: Keep body almost horizontal
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.1)
+
+    # from go2
+    # -- penalties
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
+    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
+    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    feet_air_time = RewTerm(
+        func=mdp.feet_air_time,
+        weight=0.01,
+        params={
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),
+            "command_name": "base_velocity",
+            "threshold": 0.5,
+        },
+    )
+    undesired_contacts = RewTerm(
+        func=mdp.undesired_contacts,
+        weight=-0.1,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thigh"), "threshold": 1.0},
+    )
+    undesired_contacts = RewTerm(
+        func=mdp.undesired_contacts,
+        weight=-0.8,
+        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
+    )
+    dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
 
 @configclass
 class TerminationsCfg:

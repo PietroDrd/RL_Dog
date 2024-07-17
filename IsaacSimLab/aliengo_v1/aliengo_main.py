@@ -43,6 +43,7 @@ from aliengo_ppo import PPO_v1
 import torch
 import gymnasium as gym
 
+from colorama import Fore, Style # to print colored
 
 """ 
     MODE:
@@ -50,9 +51,7 @@ import gymnasium as gym
     1 -> Wrap, Register and Make the environment
     2 -> Train the Policy
 """
-MODE = 1
-
-
+MODE = 2
 
 def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
@@ -67,7 +66,7 @@ def main():
     
     match MODE:
         case 0: mode0_aka_check(env_cfg)
-        case 1: mode1_aka_doEnv(env_cfg, device)
+        case 1: mode1_aka_ppo_check(env_cfg, device)
         case 2: mode2_aka_train(env_cfg)
     print("[INFO]: Simulation END ---> Closing IsaacSim")
 
@@ -89,28 +88,20 @@ def mode0_aka_check(env_cfg: ManagerBasedRLEnvCfg):
     env.close()
 
 from omni.isaac.lab_tasks.utils import parse_env_cfg
-def mode1_aka_doEnv(env_cfg: ManagerBasedRLEnvCfg, device):
-    
-    env = gym.make(args_cli.task, env_cfg=env_cfg)
-    # agent = PPO_v1(env=env, device=device, verbose=1)
-
-    # count = 0
-    # while simulation_app.is_running():
-    #     with torch.inference_mode():
-    #         # reset
-    #         if count % 1200 == 0:
-    #             count = 0
-    #             env.reset()
-    #             print("-" * 80)
-    #             print("[INFO]: Resetting environment...")
-    #         #joint_efforts = torch.randn_like(env.action_manager.action)
-    #         #obs, rew, terminated, truncated, info = env.step(joint_efforts)
-    #         count += 1
+def mode1_aka_ppo_check(env_cfg: ManagerBasedRLEnvCfg, device = "cpu"): 
+    #env = gym.make(args_cli.task, env_cfg=env_cfg)
+    env = ManagerBasedRLEnv(cfg=env_cfg)
+    agent = PPO_v1(env=env, device=device, verbose=1)
+    print("[INFO] ---- Agent PPO_v1 done ----")
     env.close()
 
-def mode2_aka_train(env_cfg: ManagerBasedRLEnvCfg):
-    # TODO: Implement mode 2 functionality
-    pass
+def mode2_aka_train(env_cfg: ManagerBasedRLEnvCfg, device = "cpu"):
+    env = ManagerBasedRLEnv(cfg=env_cfg)
+    agent = PPO_v1(env=env, device=device, verbose=1)
+    print(Fore.YELLOW + '[INFO-AlienGo] env + PPO_v1 done' + Style.RESET_ALL)
+
+    agent.train_sequential()
+    env.close()
 
 if __name__ == "__main__":
     main()

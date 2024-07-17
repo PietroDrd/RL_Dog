@@ -78,9 +78,9 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
 
 class PPO_v1:
     def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cpu", verbose=0):
-        self.env = wrap_env(env, verbose=verbose)    # SKRL: wrapper = "auto", by default,  otherwise--> "isaaclab"
+        self.env = wrap_env(env, verbose=verbose, wrapper="isaac-orbit")    # SKRL: wrapper = "auto", by default,  otherwise--> "isaac-orbit"
         self.config = config
-        self.device = device
+        self.device = "cuda" #device
         self.num_envs = env.num_envs   #needed for MEMORY of PPO, num_envs comes from "args" of the env object
         self.agent = self._create_agent()
 
