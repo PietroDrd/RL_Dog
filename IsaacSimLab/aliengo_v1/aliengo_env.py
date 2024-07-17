@@ -14,11 +14,12 @@ from omni.isaac.lab.managers import RewardTermCfg as RewTerm
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
 
-from omni.isaac.lab.utils.noise import AdditiveUniformNoiseCfg as Unoise
-from omni.isaac.lab.utils       import configclass
+from omni.isaac.lab.utils.noise  import AdditiveUniformNoiseCfg as Unoise
+from omni.isaac.lab.utils        import configclass
+from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
+from omni.isaac.lab.scene        import InteractiveSceneCfg
+from omni.isaac.lab.terrains     import TerrainImporterCfg
 
-from omni.isaac.lab.scene       import InteractiveSceneCfg
-from omni.isaac.lab.terrains    import TerrainImporterCfg
 from omni.isaac.lab.terrains.config.rough   import ROUGH_TERRAINS_CFG
 from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black #modified in IsaacLab_
 
@@ -41,7 +42,7 @@ import omni.isaac.lab_tasks.manager_based.locomotion.velocity.mdp as mdp        
 global ROUGH_TERRAIN
 global HEIGHT_SCAN 
 
-ROUGH_TERRAIN = 1
+ROUGH_TERRAIN = 0
 HEIGHT_SCAN = 1
 
 
@@ -82,7 +83,7 @@ class BaseSceneCfg(InteractiveSceneCfg):
     if HEIGHT_SCAN:
         height_scanner= RayCasterCfg(
             prim_path = "{ENV_REGEX_NS}/Robot/base",
-            offset = RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+            offset = RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 10.0)),
             attach_yaw_only = True,
             pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=(1.0, 1.0)),
             debug_vis= False,
@@ -90,13 +91,23 @@ class BaseSceneCfg(InteractiveSceneCfg):
         )
 
     # LIGHTS
-    light = AssetBaseCfg(
-        prim_path="/World/light",
-        spawn=sim_utils.DistantLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
-    )
-    dome_light = AssetBaseCfg(
-        prim_path="/World/DomeLight",
-        spawn=sim_utils.DomeLightCfg(color=(0.9, 0.9, 0.9), intensity=400.0),
+    
+    # light = AssetBaseCfg(
+    #     prim_path="/World/light",
+    #     spawn=sim_utils.DistantLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
+    # )
+
+    # dome_light = AssetBaseCfg(
+    #     prim_path="/World/DomeLight",
+    #     spawn=sim_utils.DomeLightCfg(color=(0.9, 0.9, 0.9), intensity=400.0),
+    # )
+
+    sky_light = AssetBaseCfg(
+        prim_path="/World/skyLight",
+        spawn=sim_utils.DomeLightCfg(
+            intensity=750.0,
+            texture_file=f"{ISAAC_NUCLEUS_DIR}/Materials/Textures/Skies/PolyHaven/kloofendal_43d_clear_puresky_4k.hdr",
+        ),
     )
 
 ######### MDP - RL #########
@@ -106,12 +117,12 @@ class BaseSceneCfg(InteractiveSceneCfg):
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.25, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
 
 
 ### COMANDS ###
 
-def constant_commands(env: ManagerBasedEnv, walk=False) -> torch.Tensor:
+def constant_commands(env: ManagerBasedEnv, walk=True) -> torch.Tensor:
     """The generated command from the command generator."""
     dir = [1, 0, 0] if walk else [0, 0, 0]
     return torch.tensor([dir], device=env.device).repeat(env.num_envs, 1)
@@ -120,19 +131,32 @@ def constant_commands(env: ManagerBasedEnv, walk=False) -> torch.Tensor:
 class CommandsCfg:
     """Command terms for the MDP."""
 
+    # base_velocity = mdp.UniformVelocityCommandCfg(
+    #     asset_name="robot",
+    #     resampling_time_range=(0.0, 0.0),
+    #     rel_standing_envs=0.02,
+    #     rel_heading_envs=1.0,
+    #     heading_command=True,
+    #     heading_control_stiffness=0.5,
+    #     debug_vis=True,
+    #     ranges=mdp.UniformVelocityCommandCfg.Ranges(
+    #         lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
+    #     ),
+    # )
+    # Null Velocity, direction and strength are given by external function "constant_commands"
+
     base_velocity = mdp.UniformVelocityCommandCfg(
         asset_name="robot",
-        resampling_time_range=(0.0, 0.0),
+        resampling_time_range=(10.0, 10.0),
         rel_standing_envs=0.02,
         rel_heading_envs=1.0,
         heading_command=True,
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
         ),
     )
-    # Null Velocity, direction and strength are given by external function "constant_commands"
 
 
 ### OBSERVATIONS ###
@@ -191,31 +215,33 @@ class EventCfg:
 class RewardsCfg:
     """Reward terms for the MDP."""         # look in: mdp.rewards.py
 
-    # (1) Constant running reward
     #is_alive = RewTerm(func=mdp.is_alive, weight=1.0)
-    # (2) Failure penalty
-    is_terminated = RewTerm(func=mdp.is_terminated, weight=-2.0)
+    #is_terminated = RewTerm(func=mdp.is_terminated, weight=-2.0)
 
-    # (3) Primary task: keep body raised from the floor --> NEED FLAT TERRAIN (height is wrt world frame)
+    # -- task
+    track_lin_vel_xy_exp = RewTerm(
+        func=mdp.track_lin_vel_xy_exp, weight=1.1, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+    )
+    track_ang_vel_z_exp = RewTerm(
+        func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+    )
+
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
         weight=0.6,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
     )
     
-    # (4) Shaping tasks: Keep body almost horizontal
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.1)
+    #flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.2)
 
-    # from go2
-    # -- penalties
     lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-5)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
     dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.01,
+        weight=0.02,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),
             "command_name": "base_velocity",
@@ -224,15 +250,15 @@ class RewardsCfg:
     )
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-0.1,
+        weight=-0.4,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thigh"), "threshold": 1.0},
     )
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-0.8,
+        weight=-1.4,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
     )
-    dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=0.0)
+    dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-0.6)
 
 @configclass
 class TerminationsCfg:
@@ -241,7 +267,7 @@ class TerminationsCfg:
 
     # base_contact = DoneTerm(
     #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 10.0},
     # )
 
     
@@ -256,7 +282,7 @@ class CurriculumCfg:
 class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_managers(), reset(), step(), seed(), close(), 
     """Configuration for the locomotion velocity-tracking environment."""
 
-    scene : BaseSceneCfg            = BaseSceneCfg(num_envs=16, env_spacing=2.5)
+    scene : BaseSceneCfg            = BaseSceneCfg(num_envs=32, env_spacing=2.5)
     actions : ActionsCfg            = ActionsCfg()
     commands : CommandsCfg          = CommandsCfg() 
     observations : ObservationsCfg  = ObservationsCfg()
@@ -272,14 +298,13 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 20 
+        self.episode_length_s = 10 
         self.sim.physics_material = self.scene.terrain.physics_material
 
         # viewer settings
         self.viewer.eye = (6.0, 0.0, 4.5)
 
-        if ROUGH_TERRAIN:
-            self.sim.physics_material = self.scene.terrain.physics_material
+        self.sim.physics_material = self.scene.terrain.physics_material
         if HEIGHT_SCAN:
             if self.scene.height_scanner is not None:
                 self.scene.height_scanner.update_period = self.decimation * self.sim.dt

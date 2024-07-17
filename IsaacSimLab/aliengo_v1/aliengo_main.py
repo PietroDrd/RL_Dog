@@ -100,7 +100,8 @@ def mode2_aka_train(env_cfg: ManagerBasedRLEnvCfg, device = "cpu"):
     agent = PPO_v1(env=env, device=device, verbose=1)
     print(Fore.YELLOW + '[INFO-AlienGo] env + PPO_v1 done' + Style.RESET_ALL)
 
-    agent.train_sequential()
+    #agent.train_sequential(timesteps=2000, headless=False)
+    agent.train_parallel(timesteps=2000, headless=False)
     env.close()
 
 if __name__ == "__main__":
