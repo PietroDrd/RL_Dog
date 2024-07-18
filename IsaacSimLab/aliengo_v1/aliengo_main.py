@@ -43,7 +43,7 @@ from aliengo_ppo import PPO_v1
 import torch
 import gymnasium as gym
 
-from colorama import Fore, Style # to print colored
+from colorama import Fore, Style
 
 """ 
     MODE:
@@ -53,10 +53,17 @@ from colorama import Fore, Style # to print colored
 """
 MODE = 2
 
+import tensorboard
+"""
+cmd -->     tensorboard --logdir = "/home/rl_sim/RL_Dog/runs     
+            http://localhost:6006
+"""
+
 def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
     env_cfg = AliengoEnvCfg()
     env_cfg.scene.num_envs = args_cli.num_envs
+    
 
     gym.register(
         id=args_cli.task,
@@ -88,20 +95,22 @@ def mode0_aka_check(env_cfg: ManagerBasedRLEnvCfg):
     env.close()
 
 from omni.isaac.lab_tasks.utils import parse_env_cfg
-def mode1_aka_ppo_check(env_cfg: ManagerBasedRLEnvCfg, device = "cpu"): 
+def mode1_aka_ppo_check(env_cfg: ManagerBasedRLEnvCfg, device = "cuda"): 
     #env = gym.make(args_cli.task, env_cfg=env_cfg)
     env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1)
     print("[INFO] ---- Agent PPO_v1 done ----")
     env.close()
 
-def mode2_aka_train(env_cfg: ManagerBasedRLEnvCfg, device = "cpu"):
+def mode2_aka_train(env_cfg: ManagerBasedRLEnvCfg, device = "cuda"):
     env = ManagerBasedRLEnv(cfg=env_cfg)
+    #env.device = device
     agent = PPO_v1(env=env, device=device, verbose=1)
     print(Fore.YELLOW + '[INFO-AlienGo] env + PPO_v1 done' + Style.RESET_ALL)
 
-    #agent.train_sequential(timesteps=2000, headless=False)
-    agent.train_parallel(timesteps=2000, headless=False)
+    agent.train_sequential(timesteps=14000, headless=False)
+    #agent.train_parallel(timesteps=16000, headless=False)
+
     env.close()
 
 if __name__ == "__main__":

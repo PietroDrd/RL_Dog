@@ -77,6 +77,7 @@ class BaseSceneCfg(InteractiveSceneCfg):
     # ROBOT
     robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
+    # SENSORS (virtual ones, the real robot does not has thm) 
     contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
     # HEIGHT SCAN (robot does not has it, however in sim can lean to a faster training)
@@ -86,7 +87,7 @@ class BaseSceneCfg(InteractiveSceneCfg):
             offset = RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 10.0)),
             attach_yaw_only = True,
             pattern_cfg = patterns.GridPatternCfg(resolution=0.1, size=(1.0, 1.0)),
-            debug_vis= False,
+            debug_vis= True,
             mesh_prim_paths = ["/World/ground"],
         )
 
@@ -220,42 +221,42 @@ class RewardsCfg:
 
     # -- task
     track_lin_vel_xy_exp = RewTerm(
-        func=mdp.track_lin_vel_xy_exp, weight=1.1, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=0.2, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
 
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=0.6,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
+        weight=0.3,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
     )
     
     #flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.2)
 
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
+    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-1.0)
     ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-7)
+    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-4)
+    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-5)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.02,
+        weight=0.1,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),
             "command_name": "base_velocity",
-            "threshold": 0.5,
+            "threshold": 0.3,
         },
     )
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-0.4,
+        weight=-0.8,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thigh"), "threshold": 1.0},
     )
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-1.4,
+        weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
     )
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-0.6)
@@ -265,10 +266,16 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
+    ### Too strong/angry ###
     # base_contact = DoneTerm(
     #     func=mdp.illegal_contact,
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 10.0},
     # )
+
+    upside_down = DoneTerm(
+        func = mdp.bad_orientation,
+        params={"limit_angle": 1.4}, # whole robot | radiants: 1.5 ~ 90° Deg
+    )
 
     
 @configclass

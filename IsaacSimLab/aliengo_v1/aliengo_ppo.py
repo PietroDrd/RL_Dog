@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+from colorama import Fore, Style
 
 ### SKRL-RL STUFF ###
 
@@ -25,12 +26,6 @@ set_seed()  # e.g. `set_seed(42)` for fixed seed
 ### ISAACLAB CLASSES ###
 from omni.isaac.lab.envs     import ManagerBasedRLEnv
 
-############# CHECK IF TO-DO ###############
-# omni.isaac.lab_tasks.utils.wrappers.skrl.process_skrl_cfg(cfg: dict) → dict:
-"""
-from omni.isaac.lab_tasks.utils.wrappers.skrl import procss_skrl_cfg
-process_skrl_cfg(ALIENGO_ENV_CFG)   # IF ANY (must adapt it)
-"""
 
 # define shared model (stochastic and deterministic models) using mixins
 class Shared(GaussianMixin, DeterministicMixin, Model):
@@ -49,16 +44,15 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
         """
 
         self.net = nn.Sequential(nn.Linear(self.num_observations, 256), # activ fcns were ELU
-                                 nn.ReLU(),
+                                 nn.ELU(),
                                  nn.Linear(256, 128),
-                                 nn.ReLU(),
-                                 nn.Linear(128, 64),
-                                 nn.ReLU())
+                                 nn.ELU(),
+                                 nn.Linear(128, 128),
+                                 nn.ELU())
 
-        self.mean_layer = nn.Linear(64, self.num_actions)
+        self.mean_layer = nn.Linear(128, self.num_actions)       # num_actions: 12
         self.log_std_parameter = nn.Parameter(torch.zeros(self.num_actions))
-
-        self.value_layer = nn.Linear(64, 1)
+        self.value_layer = nn.Linear(128, 1)
 
     def act(self, inputs, role):
         if role == "policy":
@@ -77,8 +71,8 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
 
 
 class PPO_v1:
-    def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cpu", verbose=0):
-        self.env = wrap_env(env, verbose=verbose, wrapper="isaac-orbit")    # SKRL: wrapper = "auto", by default,  otherwise--> "isaac-orbit"
+    def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cuda", verbose=0):
+        self.env = wrap_env(env, verbose=verbose, wrapper="isaaclab")    # SKRL: wrapper = "auto", by default,  otherwise--> "isaac-orbit"
         self.config = config
         self.device = "cuda" #device
         self.num_envs = env.num_envs   #needed for MEMORY of PPO, num_envs comes from "args" of the env object
@@ -100,7 +94,10 @@ class PPO_v1:
         self.config["state_preprocessor_kwargs"] = {"size": self.env.observation_space, "device": self.device}
         self.config["value_preprocessor"] = RunningStandardScaler
         self.config["value_preprocessor_kwargs"] = {"size": 1, "device": self.device}
-        
+
+        self.config["experiment"]["experiment_name"]  = "AlienGo_v1_walktry"
+        self.config["experiment"]["directory"] = "/home/rl_sim/RL_Dog/runs"
+
         # instantiate a memory as rollout buffer (any memory can be used for this)
         mem_size = 24
         batch_dim = 6
@@ -137,10 +134,17 @@ class PPO_v1:
         trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
         trainer.train()
 
+        # model_path = "/home/rl_sim/RL_Dog/runs/py_models"
+        # torch.save(self.agent.models["policy"].net.state_dict(), model_path)
+
+
     def train_parallel(self, timesteps=20000, headless=False):
         cfg_trainer = {"timesteps": timesteps, "headless": headless}
         trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
-        trainer.train() 
+        trainer.train()
+
+        # model_path = "/home/rl_sim/RL_Dog/runs/py_models"
+        # torch.save(self.agent.models["policy"].net.state_dict(), model_path)
 
 #########################################################################################
 
