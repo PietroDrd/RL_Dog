@@ -131,7 +131,7 @@ AliengoCFG_Black = ArticulationCfg(
             joint_names_expr=[".*_hip_joint", ".*_thigh_joint", ".*_calf_joint"],
             effort_limit=33.5,
             saturation_effort=33.5,
-            velocity_limit=28.0,    # original = 21.0
+            velocity_limit=25.0,    # original = 21.0
             stiffness=25.0,
             damping=0.5,
             friction=0.0,

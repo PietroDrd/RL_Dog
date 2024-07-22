@@ -124,40 +124,41 @@ class ActionsCfg:
 ### COMANDS ###
 
 def constant_commands(env: ManagerBasedEnv, walk=True) -> torch.Tensor:
-    """The generated command from the command generator."""
+    """Generated command"""
     dir = [1, 0, 0] if walk else [0, 0, 0]
-    return torch.tensor([dir], device=env.device).repeat(env.num_envs, 1)
+    tensor_lst =  torch.tensor([dir], device=env.device).repeat(env.num_envs, 1)
+    return tensor_lst
 
 @configclass
 class CommandsCfg:
     """Command terms for the MDP."""
 
-    # base_velocity = mdp.UniformVelocityCommandCfg(
-    #     asset_name="robot",
-    #     resampling_time_range=(0.0, 0.0),
-    #     rel_standing_envs=0.02,
-    #     rel_heading_envs=1.0,
-    #     heading_command=True,
-    #     heading_control_stiffness=0.5,
-    #     debug_vis=True,
-    #     ranges=mdp.UniformVelocityCommandCfg.Ranges(
-    #         lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
-    #     ),
-    # )
-    # Null Velocity, direction and strength are given by external function "constant_commands"
-
     base_velocity = mdp.UniformVelocityCommandCfg(
         asset_name="robot",
-        resampling_time_range=(10.0, 10.0),
+        resampling_time_range=(0.0, 0.0),
         rel_standing_envs=0.02,
         rel_heading_envs=1.0,
         heading_command=True,
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
         ),
     )
+    # Null Velocity, direction and strength are given by external function "constant_commands"
+
+    # base_velocity = mdp.UniformVelocityCommandCfg(
+    #     asset_name="robot",
+    #     resampling_time_range=(10.0, 10.0),
+    #     rel_standing_envs=0.02,
+    #     rel_heading_envs=1.0,
+    #     heading_command=True,
+    #     heading_control_stiffness=0.5,
+    #     debug_vis=True,
+    #     ranges=mdp.UniformVelocityCommandCfg.Ranges(
+    #         lin_vel_x=(-1.0, 1.0), lin_vel_y=(-1.0, 1.0), ang_vel_z=(-1.0, 1.0), heading=(-math.pi, math.pi)
+    #     ),
+    # )
 
 
 ### OBSERVATIONS ###
@@ -186,8 +187,11 @@ class ObservationsCfg:
 
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))
-        floor_dis = ObsTerm(func=mdp.base_pos_z,    noise=Unoise(n_min=-0.02, n_max=0.02))
+
         actions   = ObsTerm(func=mdp.last_action)
+
+        if not HEIGHT_SCAN and not ROUGH_TERRAIN: 
+            floor_dis = ObsTerm(func=mdp.base_pos_z,    noise=Unoise(n_min=-0.02, n_max=0.02))
 
         if HEIGHT_SCAN:
             height_scan = ObsTerm(
@@ -212,6 +216,9 @@ class EventCfg:
 
 ### REWARDS ###
 
+# Available strings: ['base', 'FL_hip', 'FL_thigh', 'FL_calf', 'FR_hip', 'FR_thigh', 'FR_calf', 'RL_hip', 'RL_thigh', 'RL_calf', 'RR_hip', 'RR_thigh', 'RR_calf']
+# IDK why not "*_foot" (and "trunk") even if is present in URDF
+
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""         # look in: mdp.rewards.py
@@ -235,23 +242,34 @@ class RewardsCfg:
     
     #flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.2)
 
-    lin_vel_z_l2 = RewTerm(func=mdp.lin_vel_z_l2, weight=-1.0)
-    ang_vel_xy_l2 = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.05)
-    dof_torques_l2 = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-4)
-    dof_acc_l2 = RewTerm(func=mdp.joint_acc_l2, weight=-2.5e-5)
-    action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
+    lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-1.0)
+    ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.05)
+    dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-4)
+    dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,     weight=-2.5e-5)
+    action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.01)
+
+    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits, weight=-0.2)
+
+
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.1,
+        weight=0.15,
         params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),   # *_foot doesen't work even if in URDf is present
             "command_name": "base_velocity",
-            "threshold": 0.3,
+            "threshold": 0.5,
         },
     )
+
+    # desired_contacts = RewTerm(
+    #     func=mdp.undesired_contacts,
+    #     weight=0.1,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},    # *_foot doesen't work even if in URDf is present
+    # )
+
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-0.8,
+        weight=-0.6,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thigh"), "threshold": 1.0},
     )
     undesired_contacts = RewTerm(
@@ -259,8 +277,7 @@ class RewardsCfg:
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
     )
-    dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-0.6)
-
+    
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
@@ -272,10 +289,10 @@ class TerminationsCfg:
     #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 10.0},
     # )
 
-    upside_down = DoneTerm(
-        func = mdp.bad_orientation,
-        params={"limit_angle": 1.4}, # whole robot | radiants: 1.5 ~ 90° Deg
-    )
+    # upside_down = DoneTerm(
+    #     func = mdp.bad_orientation,
+    #     params={"limit_angle": 1.45}, # whole robot | radiants: 1.5 ~ 90° Deg
+    # )
 
     
 @configclass
