@@ -1,4 +1,7 @@
-### GENERAL ###
+### GENERAL ###ù
+
+import os
+import datetime
 
 import torch
 import torch.nn as nn
@@ -68,7 +71,14 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
             shared_output = self.net(inputs["states"]) if self._shared_output is None else self._shared_output
             self._shared_output = None
             return self.value_layer(shared_output), {}
+        
 
+def get_experiment_name_with_timestamp(base_name, directory):
+    timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
+    experiment_name = f"{base_name}_{timestamp}"
+    base_path = os.path.join(directory, experiment_name)
+    
+    return experiment_name
 
 class PPO_v1:
     def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cuda", verbose=0):
@@ -95,8 +105,11 @@ class PPO_v1:
         self.config["value_preprocessor"] = RunningStandardScaler
         self.config["value_preprocessor_kwargs"] = {"size": 1, "device": self.device}
 
-        self.config["experiment"]["experiment_name"]  = "AlienGo_v1_walktry"
         self.config["experiment"]["directory"] = "/home/rl_sim/RL_Dog/runs"
+        directory = self.config["experiment"]["directory"]
+
+        experiment_name = get_experiment_name_with_timestamp("AlienGo_v1_walktry", directory)
+        self.config["experiment"]["experiment_name"] = experiment_name
 
         # instantiate a memory as rollout buffer (any memory can be used for this)
         mem_size = 24

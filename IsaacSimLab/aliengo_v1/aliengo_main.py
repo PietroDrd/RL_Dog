@@ -40,6 +40,7 @@ from omni.isaac.lab.envs     import ManagerBasedRLEnvCfg
 from aliengo_env import AliengoEnvCfg
 from aliengo_ppo import PPO_v1
 
+import os
 import torch
 import gymnasium as gym
 
@@ -50,6 +51,7 @@ from colorama import Fore, Style
     0 -> just check the environment, no training, no policy
     1 -> Wrap, Register and Make the environment
     2 -> Train the Policy
+    3 -> Video Record and save
 """
 MODE = 2
 
@@ -105,6 +107,30 @@ def mode1_aka_ppo_check(env_cfg: ManagerBasedRLEnvCfg, device = "cuda"):
 def mode2_aka_train(env_cfg: ManagerBasedRLEnvCfg, device = "cuda"):
     env = ManagerBasedRLEnv(cfg=env_cfg)
     #env.device = device
+    agent = PPO_v1(env=env, device=device, verbose=1)
+    print(Fore.YELLOW + '[INFO-AlienGo] env + PPO_v1 done' + Style.RESET_ALL)
+
+    agent.train_sequential(timesteps=20000, headless=False)
+    #agent.train_parallel(timesteps=20000, headless=False)
+
+    env.close()
+
+
+log_dir = "SAME_PATH_as_PPOv1_Experiment???????"
+from omni.isaac.lab.utils.dict import print_dict
+def mode3_aka_videolog(env_cfg: ManagerBasedRLEnvCfg, device = "cuda"):
+    env = ManagerBasedRLEnv(cfg=env_cfg)
+    if args_cli.video:
+        video_kwargs = {
+            "video_folder": os.path.join(log_dir, "videos"),
+            "step_trigger": lambda step: step % args_cli.video_interval == 0,
+            "video_length": args_cli.video_length,
+            "disable_logger": True,
+        }
+        print("[INFO] Recording videos during training.")
+        print_dict(video_kwargs, nesting=4)
+        env = gym.wrappers.RecordVideo(env, **video_kwargs)
+
     agent = PPO_v1(env=env, device=device, verbose=1)
     print(Fore.YELLOW + '[INFO-AlienGo] env + PPO_v1 done' + Style.RESET_ALL)
 
