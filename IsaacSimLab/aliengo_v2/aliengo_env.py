@@ -123,42 +123,57 @@ class ActionsCfg:
 
 ### COMANDS ###
 
-def constant_commands(env: ManagerBasedEnv, walk=True) -> torch.Tensor:
+def constant_commands(env: ManagerBasedEnv) -> torch.Tensor:
     """Generated command"""
-    dir = [1, 0, 0] if walk else [0, 0, 0]
-    tensor_lst =  torch.tensor([dir], device=env.device).repeat(env.num_envs, 1)
+    tensor_lst =  torch.tensor([0.0, 0.0, 0.0], device=env.device).repeat(env.num_envs, 1)
     return tensor_lst
 
+
+VEL_TYPE = 2
 @configclass
 class CommandsCfg:
     """Command terms for the MDP."""
 
-    # base_velocity = mdp.NormalVelocityCommandCfg(
-    #     asset_name="robot",
-    #     resampling_time_range=(0.0, 0.0),
-    #     rel_standing_envs=0.02,
-    #     rel_heading_envs=1.0,
-    #     heading_command=True,
-    #     heading_control_stiffness=0.5,
-    #     debug_vis=True,
-    #     ranges=mdp.UniformVelocityCommandCfg.Ranges(
-    #         lin_vel_x=(0.0, 0.8), lin_vel_y=(0.0, 0.0), ang_vel_z=(-0.2, 0.2), heading=(0, 0)
-    #     ),
-    # )
-    # Null Velocity, direction and strength are given by external function "constant_commands"
+    match VEL_TYPE:
+        case 0:
+            base_velocity = mdp.NormalVelocityCommandCfg(  #inherits from UniformVelocityCommandCfg
+                asset_name="robot",
+                resampling_time_range=(0.0, 0.0),
+                heading_command=False,
+                debug_vis=True,
+                ranges=mdp.NormalVelocityCommandCfg.Ranges(
+                    mean_vel= (0.6, 0.0, 0.0), std_vel=(0.1, 0.1, 0.0), zero_prob=(0.0, 0.0, 0.0)
+                ),
+            )
+        
+        case 1:
+            base_velocity = mdp.UniformVelocityCommandCfg( # inherits from CommandTermCfg
+                asset_name="robot",
+                resampling_time_range=(0.0, 0.0),
+                rel_standing_envs=0.02,
+                rel_heading_envs=1.0,
+                heading_command=True,
+                heading_control_stiffness=0.5,
+                debug_vis=True,
+                ranges=mdp.UniformVelocityCommandCfg.Ranges(
+                    lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
+                ),
+            )
 
-    base_velocity = mdp.UniformVelocityCommandCfg(
-        asset_name="robot",
-        resampling_time_range=(5.0, 5.0),
-        rel_standing_envs=0.02,
-        rel_heading_envs=1.0,
-        heading_command=True,
-        heading_control_stiffness=0.5,
-        debug_vis=True,
-        ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.4, 0.7), lin_vel_y=(-0.1, 0.1), ang_vel_z=(-0.2, 0.2), heading=(0, 0)
-        ),
-    )
+        case 2:
+            base_velocity = mdp.UniformVelocityCommandCfg( # inherits from CommandTermCfg
+                asset_name="robot",
+                resampling_time_range=(2.0, 2.0),
+                rel_standing_envs=0.02,
+                rel_heading_envs=1.0,
+                heading_command=True,
+                heading_control_stiffness=0.5,
+                debug_vis=True,
+                ranges=mdp.UniformVelocityCommandCfg.Ranges(
+                    lin_vel_x=(0.5, 0.6), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
+                ),
+            )
+
 
 
 ### OBSERVATIONS ###
@@ -176,6 +191,7 @@ class ObservationsCfg:
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
+
         velocity_commands = ObsTerm(func=constant_commands)  # wrap it in a function
         
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
@@ -214,21 +230,21 @@ class EventCfg:
 
 @configclass
 class RewardsCfg:
-    """Reward terms for the MDP."""         # look in: mdp.rewards.py
+    """Reward terms for the MDP."""
 
-    # -- task
+                                ######## THE GOAL IS TO STOP THE ROBOT ########
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.2, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=-0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
 
-    # base_height_l2 = RewTerm(
-    #     func=mdp.base_height_l2,
-    #     weight=0.3,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
-    # )
+    base_height_l2 = RewTerm(
+        func=mdp.base_height_l2,
+        weight=0.3,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
+    )
     
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.2)
 
@@ -243,7 +259,7 @@ class RewardsCfg:
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.15,
+        weight=0.02,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),   # *_foot doesen't work even if in URDf is present
             "command_name": "base_velocity",
@@ -296,7 +312,7 @@ class CurriculumCfg:
 class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_managers(), reset(), step(), seed(), close(), 
     """Configuration for the locomotion velocity-tracking environment."""
 
-    scene : BaseSceneCfg            = BaseSceneCfg(num_envs=32, env_spacing=2.5)
+    scene : BaseSceneCfg            = BaseSceneCfg(num_envs=64, env_spacing=2.5)
     actions : ActionsCfg            = ActionsCfg()
     commands : CommandsCfg          = CommandsCfg() 
     observations : ObservationsCfg  = ObservationsCfg()
@@ -312,7 +328,7 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 10 
+        self.episode_length_s = 3 
         self.sim.physics_material = self.scene.terrain.physics_material
 
         # viewer settings

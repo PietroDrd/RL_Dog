@@ -7,7 +7,7 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v1/aliengo_main.py --num_envs 32
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v2/aliengo_main.py --num_envs 64
 
 Launch Isaac Sim Simulator first.
 """
@@ -82,6 +82,7 @@ def main():
 
 def mode0_aka_check(env_cfg: ManagerBasedRLEnvCfg):
     env = ManagerBasedRLEnv(cfg=env_cfg)
+    #env = gym.make(args_cli.task, env_cfg=env_cfg)  # --> HAS NOT "sim" attribute
     count = 0
     while simulation_app.is_running():
         with torch.inference_mode():
@@ -110,8 +111,8 @@ def mode2_aka_train(env_cfg: ManagerBasedRLEnvCfg, device = "cuda"):
     agent = PPO_v1(env=env, device=device, verbose=1)
     print(Fore.YELLOW + '[INFO-AlienGo] env + PPO_v1 done' + Style.RESET_ALL)
 
-    agent.train_sequential(timesteps=20000, headless=False)
-    #agent.train_parallel(timesteps=20000, headless=False)
+    #agent.train_sequential(timesteps=20000, headless=False)
+    agent.train_parallel(timesteps=20000, headless=False)
 
     env.close()
 
