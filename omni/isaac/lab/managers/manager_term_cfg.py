@@ -183,6 +183,7 @@ class EventTermCfg(ManagerTermBaseCfg):
 
     mode: str = MISSING
     """The mode in which the event term is applied.
+        --> "reset"
 
     Note:
         The mode name ``"interval"`` is a special mode that is handled by the

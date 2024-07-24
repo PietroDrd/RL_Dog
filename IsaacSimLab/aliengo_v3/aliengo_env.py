@@ -115,55 +115,26 @@ class ActionsCfg:
 
 def constant_commands(env: ManagerBasedEnv) -> torch.Tensor:
     """Generated command"""
-    tensor_lst =  torch.tensor([1.0, 0.0, 0.0], device=env.device).repeat(env.num_envs, 1)
+    tensor_lst =  torch.tensor([0.0, 0.0, 0.0], device=env.device).repeat(env.num_envs, 1)
     return tensor_lst
 
 
-VEL_TYPE = 2
 @configclass
 class CommandsCfg:
     """Command terms for the MDP."""
 
-    match VEL_TYPE:
-        case 0:
-            base_velocity = mdp.NormalVelocityCommandCfg(  #inherits from UniformVelocityCommandCfg
-                asset_name="robot",
-                resampling_time_range=(0.0, 0.0),
-                heading_command=False,
-                debug_vis=True,
-                ranges=mdp.NormalVelocityCommandCfg.Ranges(
-                    mean_vel= (0.6, 0.0, 0.0), std_vel=(0.1, 0.1, 0.0), zero_prob=(0.0, 0.0, 0.0)
-                ),
-            )
-        
-        case 1:
-            base_velocity = mdp.UniformVelocityCommandCfg( # inherits from CommandTermCfg
-                asset_name="robot",
-                resampling_time_range=(0.0, 0.0),
-                rel_standing_envs=0.02,
-                rel_heading_envs=1.0,
-                heading_command=True,
-                heading_control_stiffness=0.5,
-                debug_vis=True,
-                ranges=mdp.UniformVelocityCommandCfg.Ranges(
-                    lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
-                ),
-            )
-
-        case 2:
-            base_velocity = mdp.UniformVelocityCommandCfg( # inherits from CommandTermCfg
-                asset_name="robot",
-                resampling_time_range=(2.0, 2.0),
-                rel_standing_envs=0.02,
-                rel_heading_envs=1.0,
-                heading_command=True,
-                heading_control_stiffness=0.5,
-                debug_vis=True,
-                ranges=mdp.UniformVelocityCommandCfg.Ranges(
-                    lin_vel_x=(0.5, 0.6), lin_vel_y=(-0.2, 0.2), ang_vel_z=(-0.1, 0.1), heading=(0, 0.2)
-                ),
-            )
-
+    base_velocity = mdp.UniformVelocityCommandCfg( # inherits from CommandTermCfg
+        asset_name="robot",
+        resampling_time_range=(0.0, 0.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=True,
+        heading_control_stiffness=0.5,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
+        ),
+    )
 
 
 ### OBSERVATIONS ###
@@ -210,7 +181,14 @@ class ObservationsCfg:
 class EventCfg:
     """Configuration for events."""
 
-    reset_scene = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+    #reset_scene = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+    reset_scene = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        params={"pose_range": {"x": (-0.1, 0.0)}, 
+                "velocity_range": {"x": (0.2, 0.7)}}, 
+        mode="reset",
+    )
+
 
 
 ### REWARDS ###
@@ -224,32 +202,32 @@ class RewardsCfg:
 
                                 ######## THE GOAL IS TO STOP THE ROBOT ########
     track_lin_vel_xy_exp = RewTerm(
-        func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.2)}
+        func=mdp.track_lin_vel_xy_exp, weight=-1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.2)}
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.1, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=-0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
 
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=0.1,
+        weight=0.3,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
     )
     
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.2)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.4)
 
     lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.3)
-    ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.06)
+    ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.1)
     dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2, weight=-1.0e-6)
     dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,     weight=-2.5e-7)
-    action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.01)
+    action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.05)
 
     dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits, weight=-0.3)
 
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.18,
+        weight=0.04,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),   # *_foot doesen't work even if in URDf is present
             "command_name": "base_velocity",
@@ -259,18 +237,18 @@ class RewardsCfg:
 
     desired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=0.02,
+        weight=0.4,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},    # *_foot doesen't work even if in URDf is present
     )
 
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-0.6,
+        weight=-0.5,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thigh"), "threshold": 1.0},
     )
     undesired_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-1.0,
+        weight=-0.8,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
     )
     

@@ -108,7 +108,7 @@ class PPO_v1:
         self.config["experiment"]["directory"] = "/home/rl_sim/RL_Dog/runs"
         directory = self.config["experiment"]["directory"]
 
-        experiment_name = get_experiment_name_with_timestamp("AlienGo_v2_walktry", directory)
+        experiment_name = get_experiment_name_with_timestamp("AlienGo_v3_stoptry", directory)
         self.config["experiment"]["experiment_name"] = experiment_name
 
         # instantiate a memory as rollout buffer (any memory can be used for this)
