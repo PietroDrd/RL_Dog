@@ -198,6 +198,12 @@ class EventCfg:
         params={"position_range": (-0.15, 0.15), "velocity_range": (-0.05, 0.05)},
         mode="reset",
     )
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        params={"velocity_range": {"x": (-0.3, 0.3), "y": (-0.2, 0.2), "z": (-0.05, 0.05)}},
+        mode="interval",
+        interval_range_s=(0.2,0.8),
+    )
 
 
 ### REWARDS ###
