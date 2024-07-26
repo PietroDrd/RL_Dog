@@ -95,7 +95,21 @@ class PPO_v1:
         model_nn_["policy"] = Shared(self.env.observation_space, self.env.action_space, self.device)
         model_nn_["value"] = model_nn_["policy"]
 
+        # instantiate a memory as rollout buffer (any memory can be used for this)
+        mem_size = 48
+        batch_dim = 6
+        memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
+        self.config["rollouts"] = mem_size
+        self.config["learning_epochs"] = 12
+        self.config["mini_batches"] = 5 #min(mem_size * batch_dim / 48, 2 )# 48Gb VRAM of the RTX A6000
+        
+
+        self.config["lambda"] = 0.95 # GAE, Generalized Advantage Estimation: bias and variance balance
+        self.config["discount_factor"] = 0.98 # ~1 Long Term, ~0 Short Term Rewards | Standard: 0.99
+        self.config["entropy_loss_scale"] = 0.01 # Entropy Loss: ~1 --> Exploration vs ~0 --> Exploitation
+
         # Adjusts Learning Rate
+        #self.config["learning_rate"] = 5e-4
         self.config["learning_rate_scheduler"] = KLAdaptiveRL   # Has problems with "verbose" param --> commented
         self.config["learning_rate_scheduler_kwargs"] = {"kl_threshold": 0.008}
 
@@ -105,19 +119,12 @@ class PPO_v1:
         self.config["value_preprocessor"] = RunningStandardScaler
         self.config["value_preprocessor_kwargs"] = {"size": 1, "device": self.device}
 
+        
         self.config["experiment"]["directory"] = "/home/rl_sim/RL_Dog/runs"
         directory = self.config["experiment"]["directory"]
 
         experiment_name = get_experiment_name_with_timestamp("AlienGo_v3_stoptry", directory)
         self.config["experiment"]["experiment_name"] = experiment_name
-
-        # instantiate a memory as rollout buffer (any memory can be used for this)
-        mem_size = 48
-        batch_dim = 6
-        memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
-        self.config["rollouts"] = mem_size
-        self.config["mini_batches"] = 6 #min(mem_size * batch_dim / 48, 2 )# 48Gb VRAM of the RTX A6000
-        self.config["learning_epochs"] = 12
 
         agent = PPO(
             models=model_nn_,
