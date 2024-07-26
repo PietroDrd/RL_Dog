@@ -121,7 +121,7 @@ def constant_commands(env: ManagerBasedEnv) -> torch.Tensor:
 
 @configclass
 class CommandsCfg:
-    """Command terms for the MDP."""
+    """Command terms for the MDP."""   # ASKING TO HAVE 0 Velocity
 
     base_velocity = mdp.UniformVelocityCommandCfg( # inherits from CommandTermCfg
         asset_name="robot",
@@ -145,30 +145,33 @@ class ObservationsCfg:
     @configclass
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
-            
+
+        # Command Input (What we requires to do)
+        velocity_commands = ObsTerm(func=constant_commands)
+        
+        # Robot State (What we have)
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1))
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
         projected_gravity = ObsTerm(
             func=mdp.projected_gravity,
             noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-
-        velocity_commands = ObsTerm(func=constant_commands)  # wrap it in a function
         
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))
-
-        actions   = ObsTerm(func=mdp.last_action)
-
         if not HEIGHT_SCAN and not ROUGH_TERRAIN: 
-            floor_dis = ObsTerm(func=mdp.base_pos_z,    noise=Unoise(n_min=-0.02, n_max=0.02))
+            floor_dis = ObsTerm(func=mdp.base_pos_z, noise=Unoise(n_min=-0.02, n_max=0.02))
 
         if HEIGHT_SCAN:
             height_scan = ObsTerm(
                 func=mdp.height_scan,
                 params={"sensor_cfg": SceneEntityCfg("height_scanner")},
                 clip=(-1.0, 1.0),
-            )
+        )
+            
+        # Joint state 
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))
+
+        actions   = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
             self.enable_corruption = True   # IDK
@@ -182,13 +185,19 @@ class EventCfg:
     """Configuration for events."""
 
     #reset_scene = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
+
+    # Reset the robot with initial velocity
     reset_scene = EventTerm(
         func=mdp.reset_root_state_uniform,
-        params={"pose_range": {"x": (-0.1, 0.0)}, 
-                "velocity_range": {"x": (0.2, 0.7), "y": (-0.05, 0.05)},}, 
+        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.2, 0.08)}, 
+                "velocity_range": {"x": (0.2, 1.2), "y": (-0.05, 0.05)},}, 
         mode="reset",
     )
-
+    reset_random_joint = EventTerm(
+        func=mdp.reset_joints_by_offset,
+        params={"position_range": (-0.15, 0.15), "velocity_range": (-0.05, 0.05)},
+        mode="reset",
+    )
 
 
 ### REWARDS ###
@@ -202,20 +211,20 @@ class RewardsCfg:
 
                                 ######## Positive weights: TRACKING the BASE Velocity (set to 0) ########
     track_lin_vel_xy_exp = RewTerm(
-        func=mdp.track_lin_vel_xy_exp, weight=0.9, params={"command_name": "base_velocity", "std": math.sqrt(0.2)}
+        func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.2)}
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.2, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=0.8, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
-
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=0.8,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
+        weight=0.9,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.45}, # "target": 0.35         target not a param of base_pos_z
     )
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.1)
+    
+    #### PENALITIES
     body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.2)
-
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=0.2)
     lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.2)
     ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.3)
     action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.02)
@@ -225,7 +234,7 @@ class RewardsCfg:
     dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.2)
     dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,       weight=-2.5e-6)
     dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2,   weight=-1.0e-7)
-    dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
+    #dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
 
     # feet_air_time = RewTerm(
     #     func=mdp.feet_air_time,
@@ -237,18 +246,18 @@ class RewardsCfg:
     #     },
     # )
 
-    desired_contacts = RewTerm(
+    desired_calf_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=0.1,
+        weight=0.06,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},    # *_foot doesen't work even if in URDf is present
     )
 
-    undesired_contacts = RewTerm(
+    undesired_thigh_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-0.6,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thigh"), "threshold": 1.0},
     )
-    undesired_contacts = RewTerm(
+    undesired_body_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-0.9,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
@@ -282,7 +291,7 @@ class CurriculumCfg:
 class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_managers(), reset(), step(), seed(), close(), 
     """Configuration for the locomotion velocity-tracking environment."""
 
-    scene : BaseSceneCfg            = BaseSceneCfg(num_envs=64, env_spacing=2.5)
+    scene : BaseSceneCfg            = BaseSceneCfg(num_envs=128, env_spacing=2.5)
     actions : ActionsCfg            = ActionsCfg()
     commands : CommandsCfg          = CommandsCfg() 
     observations : ObservationsCfg  = ObservationsCfg()
@@ -298,7 +307,7 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 3 
+        self.episode_length_s = 2
         self.sim.physics_material = self.scene.terrain.physics_material
 
         # viewer settings

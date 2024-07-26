@@ -46,16 +46,17 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
         reduction: The reduction method specifies how to aggregate the log probability densities when computing the total log probability.
         """
 
+        print(f"Observation Space: {self.num_observations}, Action Space: {self.num_actions}")
         self.net = nn.Sequential(nn.Linear(self.num_observations, 256), # activ fcns were ELU
                                  nn.ELU(),
                                  nn.Linear(256, 128),
                                  nn.ELU(),
-                                 nn.Linear(128, 64),
+                                 nn.Linear(128, 128),
                                  nn.ELU())
 
-        self.mean_layer = nn.Linear(64, self.num_actions)       # num_actions: 12
+        self.mean_layer = nn.Linear(128, self.num_actions)       # num_actions: 12
         self.log_std_parameter = nn.Parameter(torch.zeros(self.num_actions))
-        self.value_layer = nn.Linear(64, 1)
+        self.value_layer = nn.Linear(128, 1)
 
     def act(self, inputs, role):
         if role == "policy":
@@ -84,7 +85,7 @@ class PPO_v1:
     def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cuda", verbose=0):
         self.env = wrap_env(env, verbose=verbose, wrapper="isaaclab")    # SKRL: wrapper = "auto", by default,  otherwise--> "isaac-orbit"
         self.config = config
-        self.device = "cuda" #device
+        self.device = "cuda" 
         self.num_envs = env.num_envs   #needed for MEMORY of PPO, num_envs comes from "args" of the env object
         self.agent = self._create_agent()
 
@@ -96,12 +97,12 @@ class PPO_v1:
         model_nn_["value"] = model_nn_["policy"]
 
         # instantiate a memory as rollout buffer (any memory can be used for this)
-        mem_size = 48
+        mem_size = 32
         batch_dim = 6
         memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
         self.config["rollouts"] = mem_size
         self.config["learning_epochs"] = 12
-        self.config["mini_batches"] = 5 #min(mem_size * batch_dim / 48, 2 )# 48Gb VRAM of the RTX A6000
+        self.config["mini_batches"] = 4 #min(mem_size * batch_dim / 48, 2 )# 48Gb VRAM of the RTX A6000
         
 
         self.config["lambda"] = 0.95 # GAE, Generalized Advantage Estimation: bias and variance balance
@@ -155,6 +156,22 @@ class PPO_v1:
         trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
         trainer.train()
 
+        from aliengo_env import RewardsCfg
+        from omni.isaac.lab.managers import RewardTermCfg as RewTerm
+        try:
+            experiment_name = self.agent.config["experiment"]["experiment_name"]
+            directory = f"/path/to/experiments/{experiment_name}"
+            os.makedirs(directory, exist_ok=True)
+            
+            rewards_file_path = os.path.join(directory, "rewards_config.txt")
+            with open(rewards_file_path, 'w') as f:
+                for attr, value in RewardsCfg.__dict__.items():
+                    if not attr.startswith("__") and isinstance(value, RewTerm):
+                        f.write(f"{attr}: {value}\n")
+            print(f"Rewards configuration saved to {rewards_file_path}")
+        except Exception as e:
+            print(f"An error occurred while saving the rewards configuration: {e}")
+        
         # model_path = "/home/rl_sim/RL_Dog/runs/py_models"
         # torch.save(self.agent.models["policy"].net.state_dict(), model_path)
 
