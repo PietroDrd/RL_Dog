@@ -2,6 +2,7 @@
 
 import os
 import datetime
+import inspect
 
 import torch
 import torch.nn as nn
@@ -74,12 +75,14 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
             return self.value_layer(shared_output), {}
         
 
-def get_experiment_name_with_timestamp(base_name, directory):
+def get_experiment_name_with_timestamp(base_name):
     timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
     experiment_name = f"{base_name}_{timestamp}"
-    base_path = os.path.join(directory, experiment_name)
     
     return experiment_name
+
+from aliengo_env_real import RewardsCfg
+from aliengo_env_real import ObservationsCfg
 
 class PPO_v1:
     def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cuda", verbose=0):
@@ -120,11 +123,11 @@ class PPO_v1:
         self.config["value_preprocessor"] = RunningStandardScaler
         self.config["value_preprocessor_kwargs"] = {"size": 1, "device": self.device}
 
-        
         self.config["experiment"]["directory"] = "/home/rl_sim/RL_Dog/runs"
-        directory = self.config["experiment"]["directory"]
 
-        experiment_name = get_experiment_name_with_timestamp("AlienGo_v3_stoptry", directory)
+        base_name  = "AlienGo_v3_stoptry"
+        timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
+        experiment_name = f"{base_name}_{timestamp}"
         self.config["experiment"]["experiment_name"] = experiment_name
 
         agent = PPO(
@@ -137,48 +140,84 @@ class PPO_v1:
         )
         return agent
     
-    def train_mine_easy(self, num_episodes=1000):
-        for ep in range(num_episodes):
-            obs = self.env.reset()
-            done = False
-            tot_reward = 0
-            cnt = 0
-            while not done:
-                action = self.agent.act(obs)  # act if a skrl.agent.torch.ppo --> PPO's method
-                """ Process the environment's states to make a decision (actions) using the main policy """
-                obs, reward, done, info = self.env.step(actions=action)
-                tot_reward += reward 
-                cnt += 1
-                if cnt % 10 == 0: print(f"Episode: {ep}, Total Reward: {tot_reward}")
-
     def train_sequential(self, timesteps=20000, headless=False):
         cfg_trainer= {"timesteps": timesteps, "headless": headless}
+        timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
         trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
-        trainer.train()
-
-        from aliengo_env import RewardsCfg
-        from omni.isaac.lab.managers import RewardTermCfg as RewTerm
+               
         try:
-            experiment_name = self.agent.config["experiment"]["experiment_name"]
-            directory = f"/path/to/experiments/{experiment_name}"
+            experiment_name = "AlienGo_v3_stoptry"
+            directory = f"/home/rl_sim/RL_Dog/runs/{experiment_name}_{timestamp}"
             os.makedirs(directory, exist_ok=True)
-            
-            rewards_file_path = os.path.join(directory, "rewards_config.txt")
-            with open(rewards_file_path, 'w') as f:
-                for attr, value in RewardsCfg.__dict__.items():
-                    if not attr.startswith("__") and isinstance(value, RewTerm):
-                        f.write(f"{attr}: {value}\n")
-            print(f"Rewards configuration saved to {rewards_file_path}")
+
+            # Paths for source code files
+            rewards_cfg_file_path = os.path.join(directory, "RewardsCfg_source.txt")
+            observations_cfg_file_path = os.path.join(directory, "ObservationsCfg_source.txt")
+
+            # Save source code for RewardsCfg
+            try:
+                rewards_cfg_source = inspect.getsource(RewardsCfg)
+                with open(rewards_cfg_file_path, 'w') as f:
+                    f.write("####### SEQUENTIAL TRAINING ####### \n\n")
+                    f.write(rewards_cfg_source)
+                print(f"Source code for RewardsCfg saved to {rewards_cfg_file_path}")
+            except Exception as e:
+                print(f"Failed to save source code for RewardsCfg: {e}")
+
+            # Save source code for ObservationsCfg.PolicyCfg
+            try:
+                observations_cfg_source = inspect.getsource(ObservationsCfg.PolicyCfg)
+                with open(observations_cfg_file_path, 'w') as f:
+                    f.write("####### SEQUENTIAL TRAINING ####### \n\n")
+                    f.write(observations_cfg_source)
+                print(f"Source code for ObservationsCfg.PolicyCfg saved to {observations_cfg_file_path}")
+            except Exception as e:
+                print(f"Failed to save source code for ObservationsCfg.PolicyCfg: {e}")
+
         except Exception as e:
-            print(f"An error occurred while saving the rewards configuration: {e}")
+            print(f"An error occurred while setting up the experiment directory: {e}")
+        trainer.train() 
         
         # model_path = "/home/rl_sim/RL_Dog/runs/py_models"
         # torch.save(self.agent.models["policy"].net.state_dict(), model_path)
 
 
     def train_parallel(self, timesteps=20000, headless=False):
+        timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
         cfg_trainer = {"timesteps": timesteps, "headless": headless}
         trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
+
+        try:
+            experiment_name = "AlienGo_v3_stoptry"
+            directory = f"/home/rl_sim/RL_Dog/runs/{experiment_name}_{timestamp}"
+            os.makedirs(directory, exist_ok=True)
+
+            # Paths for source code files
+            rewards_cfg_file_path = os.path.join(directory, "RewardsCfg_source.txt")
+            observations_cfg_file_path = os.path.join(directory, "ObservationsCfg_source.txt")
+
+            # Save source code for RewardsCfg
+            try:
+                rewards_cfg_source = inspect.getsource(RewardsCfg)
+                with open(rewards_cfg_file_path, 'w') as f:
+                    f.write("####### PARALLEL TRAINING ####### \n\n")
+                    f.write(rewards_cfg_source)
+                print(f"Source code for RewardsCfg saved to {rewards_cfg_file_path}")
+            except Exception as e:
+                print(f"Failed to save source code for RewardsCfg: {e}")
+
+            # Save source code for ObservationsCfg.PolicyCfg
+            try:
+                observations_cfg_source = inspect.getsource(ObservationsCfg.PolicyCfg)
+                with open(observations_cfg_file_path, 'w') as f:
+                    f.write("####### PARALLEL TRAINING ####### \n\n")
+                    f.write(observations_cfg_source)
+                print(f"Source code for ObservationsCfg.PolicyCfg saved to {observations_cfg_file_path}")
+            except Exception as e:
+                print(f"Failed to save source code for ObservationsCfg.PolicyCfg: {e}")
+
+        except Exception as e:
+            print(f"An error occurred while setting up the experiment directory: {e}")
         trainer.train()
 
         # model_path = "/home/rl_sim/RL_Dog/runs/py_models"
