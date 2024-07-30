@@ -47,7 +47,7 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
         reduction: The reduction method specifies how to aggregate the log probability densities when computing the total log probability.
         """
 
-        print(f"Observation Space: {self.num_observations}, Action Space: {self.num_actions}")
+        print(f"[AlienGo - PPO] Observation Space: {self.num_observations}, Action Space: {self.num_actions}")
         self.net = nn.Sequential(nn.Linear(self.num_observations, 256), # activ fcns were ELU
                                  nn.ELU(),
                                  nn.Linear(256, 128),
