@@ -136,6 +136,8 @@ class CommandsCfg:
         ),
     )
 
+### OBSERVATIONS ###
+
 from omni.isaac.lab.assets import Articulation, RigidObject
 def my_body_acc(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Acceleration of the base in the body frame."""
@@ -146,8 +148,6 @@ def my_body_acc(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor
 
     return body_acc.view(num_envs, obs_term_dim) # Ensure shape (num_envs, obs_term_dim)
 
-
-### OBSERVATIONS ###
 @configclass
 class ObservationsCfg:
     """Observation specifications for the MDP."""
@@ -156,10 +156,10 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        # Command Input (What we requires to do)
+        ### Command Input (What we requires to do)
         velocity_commands = ObsTerm(func=constant_commands)
         
-        # Robot State (What we have)
+        ### Robot State (What we have)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
         projected_gravity = ObsTerm(
             func=mdp.projected_gravity,
@@ -170,7 +170,8 @@ class ObservationsCfg:
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
             noise=Unoise(n_min=-0.1, n_max=0.1),
         )
-        # base_forces = ObsTerm(            # If accel_base does not work i can give forces 
+        #### If accel_base does not work i can give forces 
+        # base_forces = ObsTerm(            
         #     func=mdp.body_incoming_wrench,
         #     scale=0.1,
         #     params={
@@ -180,7 +181,7 @@ class ObservationsCfg:
         #     },
         # )
             
-        # Joint state 
+        ### Joint state 
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))
 
@@ -222,7 +223,8 @@ class EventCfg:
 
 ### REWARDS ###
 
-# Available strings: ['base', 'FL_hip', 'FL_thigh', 'FL_calf', 'FR_hip', 'FR_thigh', 'FR_calf', 'RL_hip', 'RL_thigh', 'RL_calf', 'RR_hip', 'RR_thigh', 'RR_calf']
+# Available strings: ['base', 'FL_hip', 'FL_thigh', 'FL_calf', 'FR_hip', 'FR_thigh', 'FR_calf', 
+#                             'RL_hip', 'RL_thigh', 'RL_calf', 'RR_hip', 'RR_thigh', 'RR_calf']
 # IDK why not "*_foot" (and "trunk") even if is present in URDF
 
 @configclass
@@ -240,6 +242,7 @@ class RewardsCfg:
         weight=0.02,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},    # *_foot doesen't work even if in URDf is present
     )
+    
     #### BODY PENALITIES
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
@@ -252,7 +255,6 @@ class RewardsCfg:
     lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.4)
     ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.3)
     
-
     #### JOINTS PENALITIES
     dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.4)
     dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.4)

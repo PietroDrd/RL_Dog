@@ -37,9 +37,12 @@ simulation_app = app_launcher.app
 from omni.isaac.lab.envs     import ManagerBasedRLEnv
 from omni.isaac.lab.envs     import ManagerBasedRLEnvCfg
 
+from omni.isaac.lab.utils.dict import print_dict
+
 from aliengo_ppo import PPO_v1
 
 import os
+import datetime
 import torch
 import gymnasium as gym
 
@@ -47,7 +50,10 @@ from colorama import Fore, Style
 
 import tensorboard
 """
-cmd -->     tensorboard --logdir = "/home/rl_sim/RL_Dog/runs     
+cmd -->     tensorboard --logdir = "/home/rl_sim/RL_Dog/runs    (SERVER)
+            or
+            tensorboard --logdir=/home/rluser/RL_Dog/runs       (DELL)
+
             http://localhost:6006
 """
 
@@ -64,12 +70,23 @@ def main():
         from aliengo_env_real import AliengoEnvCfg
         env_cfg = AliengoEnvCfg()
         env_cfg.scene.num_envs = args_cli.num_envs
-
-    gym.register(
-        id=args_cli.task,
-        entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
-        kwargs={'cfg': AliengoEnvCfg}
-    )
+    
+        try:
+            if args_cli.video:
+                timestamp = datetime.now().strftime('%d_%m_%H:%M')
+                log_dir = "/home/rl_sim/RL_Dog/runs/AleinGo_v3_stoptry_{timestamp}",
+                video_kwargs = {
+                    "video_folder": os.path.join(log_dir, "videos"),
+                    "step_trigger": lambda step: step % args_cli.video_interval == 0,
+                    "video_length": args_cli.video_length,
+                    "disable_logger": True,
+                }
+                print("[INFO] Recording videos during training.")
+                print_dict(video_kwargs, nesting=4)
+                ####  NOW NEED TO WAR THE ENV? How with SKRL?  ####
+        except Exception as e:
+            print(Fore.RED + f'[ERROR] {e}' + Style.RESET_ALL)
+            pass
 
     env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1)
