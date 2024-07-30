@@ -170,6 +170,12 @@ class ObservationsCfg:
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
             noise=Unoise(n_min=-0.1, n_max=0.1),
         )
+
+        #TO DO by prof
+        # sum (prj_gravity + accel_base) = like IMU
+        # test the trained policy +  controls --> are disturbaances !!! (eg: go2 sim.py)
+
+
         #### If accel_base does not work i can give forces 
         # base_forces = ObsTerm(            
         #     func=mdp.body_incoming_wrench,
@@ -183,7 +189,7 @@ class ObservationsCfg:
             
         ### Joint state 
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.10, n_max=0.10))
 
         actions   = ObsTerm(func=mdp.last_action)
 
@@ -242,7 +248,7 @@ class RewardsCfg:
         weight=0.02,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},    # *_foot doesen't work even if in URDf is present
     )
-    
+
     #### BODY PENALITIES
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
