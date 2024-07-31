@@ -24,6 +24,7 @@ from omni.isaac.lab.terrains.config.rough   import ROUGH_TERRAINS_CFG
 from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black #modified in IsaacLab_
 
 import omni.isaac.lab.sim        as sim_utils
+import omni.isaac.lab.utils.math as math_utils
 import omni.isaac.lab_tasks.manager_based.locomotion.velocity.mdp as mdp            # contains omni.isaac.lab.envs.mdp
 
 ###-------------------------------------------------------------------------------------###
@@ -139,14 +140,27 @@ class CommandsCfg:
 ### OBSERVATIONS ###
 
 from omni.isaac.lab.assets import Articulation, RigidObject
-def my_body_acc(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
-    """Acceleration of the base in the body frame."""
+def my_body_acc_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Acceleration of the asset_body in the WORLD frame."""
     asset: RigidObject = env.scene[asset_cfg.name]
-    num_envs = asset.data.body_acc_w.shape[0]  # Number of environments
-    obs_term_dim = 3  # For x, y, z
-    body_acc = asset.data.body_acc_w[:, asset_cfg.body_ids, :obs_term_dim] # obtained by vel diff
+    num_envs = asset.data.body_acc_w.shape[0]  # Number of environments (instances)
+    body_acc_w = asset.data.body_acc_w[:, asset_cfg.body_ids, :3]
+    return body_acc_w.view(num_envs, 3) # Ensure shape (num_envs, obs_term_dim)
 
-    return body_acc.view(num_envs, obs_term_dim) # Ensure shape (num_envs, obs_term_dim)
+def my_body_acc_b(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Acceleration of the asset_body in the BASE frame."""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    num_envs = asset.data.body_acc_w.shape[0]  # Number of environments (instances)
+    body_acc_w = asset.data.body_acc_w[:, asset_cfg.body_ids, :3]
+    return math_utils.quat_rotate_inverse(asset.data.root_quat_w, body_acc_w.view(num_envs, 3))
+
+def imu_acc_b(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Acceleration + Gravity = IMU : of the base in the body frame."""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    num_envs = asset.data.body_acc_w.shape[0]  # Number of environments (instances)
+    body_acc_w = asset.data.body_acc_w[:, asset_cfg.body_ids, :3]
+    body_acc_b = math_utils.quat_rotate_inverse(asset.data.root_quat_w, body_acc_w.view(num_envs, 3))
+    return body_acc_b + asset.data.projected_gravity_b*9.81
 
 @configclass
 class ObservationsCfg:
@@ -161,31 +175,27 @@ class ObservationsCfg:
         
         ### Robot State (What we have)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
-        projected_gravity = ObsTerm(
-            func=mdp.projected_gravity,
-            noise=Unoise(n_min=-0.05, n_max=0.05),
-        )
-        accel_base = ObsTerm(
-            func=my_body_acc,
+        # projected_gravity = ObsTerm(
+        #     func=mdp.projected_gravity, # base frame!
+        #     noise=Unoise(n_min=-0.05, n_max=0.05),
+        # )
+        # accel_base = ObsTerm(
+        #     func=my_body_acc_b,   # world frame!
+        #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
+        #     noise=Unoise(n_min=-0.1, n_max=0.1),
+        # )
+
+        imu_like_data = ObsTerm(
+            func=imu_acc_b,
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
             noise=Unoise(n_min=-0.1, n_max=0.1),
-        )
+        ) 
 
         #TO DO by prof
-        # sum (prj_gravity + accel_base) = like IMU
+        # sum (prj_gravity + accel_base) = like IMU -----> DONE !
         # test the trained policy +  controls --> are disturbaances !!! (eg: go2 sim.py)
-
-
-        #### If accel_base does not work i can give forces 
-        # base_forces = ObsTerm(            
-        #     func=mdp.body_incoming_wrench,
-        #     scale=0.1,
-        #     params={
-        #         "asset_cfg": SceneEntityCfg(
-        #             "robot", body_names=["base"]
-        #         )
-        #     },
-        # )
+        # video headless
+        # walk x,y
             
         ### Joint state 
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
@@ -211,7 +221,7 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.22, 0.08),
                                "roll": (-0.1, 0.1), "pitch": (-0.1, 0.1),}, #cancel if want it planar
-                "velocity_range": {"x": (0.2, 1.2), "y": (-0.08, 0.08)},}, 
+                "velocity_range": {"x": (0.2, 1.0), "y": (-0.08, 0.08)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
@@ -241,32 +251,32 @@ class RewardsCfg:
         func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.8, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=0.9, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     desired_calf_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=0.02,
+        weight=0.015,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},    # *_foot doesen't work even if in URDf is present
     )
 
     #### BODY PENALITIES
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=-0.9,
+        weight=-0.8,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
     )
-    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.5)
+    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.7)
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.4)
     
-    lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.4)
-    ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.3)
+    lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.3)
+    ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.6)
     
     #### JOINTS PENALITIES
-    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.4)
-    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.4)
+    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.9)
+    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.2)
     #dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,       weight=-2e-6)
     #dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2,   weight=-1.0e-7)
-    #dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
+    dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
 
     #### OTHER PENALITIES
     # feet_air_time = RewTerm(
