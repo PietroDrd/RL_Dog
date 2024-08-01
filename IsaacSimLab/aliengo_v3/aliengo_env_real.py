@@ -46,6 +46,7 @@ global HEIGHT_SCAN
 ROUGH_TERRAIN = 0
 HEIGHT_SCAN = 0
 
+base_command = {}  # for keyboard inputs
 
 ######### SCENE #########
 terrain_type = "generator" if ROUGH_TERRAIN else "plane"

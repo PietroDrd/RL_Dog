@@ -90,7 +90,7 @@ def main():
 
     env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1)
-    print(Fore.YELLOW + '[INFO-AlienGo] Start training' + Style.RESET_ALL)
+    print(Fore.YELLOW + '[INFO-AlienGo] Start trianing' + Style.RESET_ALL)
 
     agent.train_sequential(timesteps=20000, headless=False)
     #agent.train_parallel(timesteps=20000, headless=False)

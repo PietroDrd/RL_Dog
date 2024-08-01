@@ -35,6 +35,7 @@ import torch
 
 import  omni.isaac.lab.envs.mdp      as mdp # type: ignore
 import  omni.isaac.lab.sim           as sim_utils # type: ignore
+import  omni.isaac.lab.utils.math    as math_utils
 from    omni.isaac.lab.assets        import ArticulationCfg, AssetBaseCfg # type: ignore
 from    omni.isaac.lab.envs          import ManagerBasedEnv, ManagerBasedEnvCfg # type: ignore
 from    omni.isaac.lab.managers      import EventTermCfg as EventTerm # type: ignore
@@ -42,11 +43,12 @@ from    omni.isaac.lab.managers      import ObservationGroupCfg as ObsGroup # ty
 from    omni.isaac.lab.managers      import ObservationTermCfg as ObsTerm # type: ignore
 from    omni.isaac.lab.managers      import SceneEntityCfg # type: ignore
 from    omni.isaac.lab.scene         import InteractiveSceneCfg # type: ignore
-from    omni.isaac.lab.sensors       import RayCasterCfg, patterns # type: ignore
+from    omni.isaac.lab.sensors       import ContactSensorCfg, RayCasterCfg, patterns
 from    omni.isaac.lab.terrains      import TerrainImporterCfg # type: ignore
 from    omni.isaac.lab.utils         import configclass # type: ignore
 from    omni.isaac.lab.utils.assets  import ISAACLAB_NUCLEUS_DIR, check_file_path, read_file # type: ignore
 from    omni.isaac.lab.utils.noise   import AdditiveUniformNoiseCfg as Unoise # type: ignore
+
 
 
 ##
@@ -56,19 +58,9 @@ from omni.isaac.lab.terrains.config.rough import ROUGH_TERRAINS_CFG  # type: ign
 from omni.isaac.lab_assets.anymal   import ANYMAL_C_CFG  # type: ignore # isort: skip
 from omni.isaac.lab_assets.unitree  import UNITREE_A1_CFG
 #from unitree import AliengoCFG_Black, AliengoCFG_Color
-from omni.isaac.lab_assets.unitree          import AliengoCFG_Color, AliengoCFG_Black  #modified in IsaacLab_ WORKS 
+from omni.isaac.lab_assets.unitree  import AliengoCFG_Color, AliengoCFG_Black  #modified in IsaacLab_ WORKS 
 
 ROUGH_TERRAIN = 0
-
-##
-# Custom observation terms
-##
-
-
-def constant_commands(env: ManagerBasedEnv) -> torch.Tensor:
-    """The generated command from the command generator."""
-    return torch.tensor([[1, 0, 0]], device=env.device).repeat(env.num_envs, 1)
-
 
 ##
 # Scene definition
@@ -76,7 +68,7 @@ def constant_commands(env: ManagerBasedEnv) -> torch.Tensor:
 
 
 @configclass
-class MySceneCfg(InteractiveSceneCfg):
+class BaseSceneCfg(InteractiveSceneCfg):
     """Example scene configuration."""
 
     # add terrain
@@ -103,15 +95,8 @@ class MySceneCfg(InteractiveSceneCfg):
     # add robot
     robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
-    # Sensor implemented in Anymal, idk if ALIENGO HAS IT
-    # height_scanner = RayCasterCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/base",
-    #     offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
-    #     attach_yaw_only=True,
-    #     pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
-    #     debug_vis=True,
-    #     mesh_prim_paths=["/World/ground"],
-    # )
+    # SENSORS (virtual ones, the real robot does not has thm) 
+    contact_forces = ContactSensorCfg(prim_path="{ENV_REGEX_NS}/Robot/.*", history_length=3, track_air_time=True)
 
     # lights
     light = AssetBaseCfg(
@@ -128,6 +113,28 @@ class MySceneCfg(InteractiveSceneCfg):
 # MDP settings
 ##
 
+def constant_commands(env: ManagerBasedEnv) -> torch.Tensor:
+    """Generated command"""
+    tensor_lst =  torch.tensor([0.0, 0.0, 0.0], device=env.device).repeat(env.num_envs, 1)
+    return tensor_lst
+
+
+@configclass
+class CommandsCfg:
+    """Command terms for the MDP."""   # ASKING TO HAVE 0 Velocity
+
+    base_velocity = mdp.UniformVelocityCommandCfg( # inherits from CommandTermCfg
+        asset_name="robot",
+        resampling_time_range=(0.0, 0.0),
+        rel_standing_envs=0.02,
+        rel_heading_envs=1.0,
+        heading_command=True,
+        heading_control_stiffness=0.5,
+        debug_vis=True,
+        ranges=mdp.UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
+        ),
+    )
 
 @configclass
 class ActionsCfg:
@@ -135,6 +142,31 @@ class ActionsCfg:
 
     joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.5, use_default_offset=True)
 
+
+### OBSERVATIONS ###
+
+from omni.isaac.lab.assets import Articulation, RigidObject
+def my_body_acc_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Acceleration of the asset_body in the WORLD frame."""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    num_envs = asset.data.body_acc_w.shape[0]  # Number of environments (instances)
+    body_acc_w = asset.data.body_acc_w[:, asset_cfg.body_ids, :3]
+    return body_acc_w.view(num_envs, 3) # Ensure shape (num_envs, obs_term_dim)
+
+def my_body_acc_b(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Acceleration of the asset_body in the BASE frame."""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    num_envs = asset.data.body_acc_w.shape[0]  # Number of environments (instances)
+    body_acc_w = asset.data.body_acc_w[:, asset_cfg.body_ids, :3]
+    return math_utils.quat_rotate_inverse(asset.data.root_quat_w, body_acc_w.view(num_envs, 3))
+
+def imu_acc_b(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Acceleration + Gravity = IMU : of the base in the body frame."""
+    asset: RigidObject = env.scene[asset_cfg.name]
+    num_envs = asset.data.body_acc_w.shape[0]  # Number of environments (instances)
+    body_acc_w = asset.data.body_acc_w[:, asset_cfg.body_ids, :3]
+    body_acc_b = math_utils.quat_rotate_inverse(asset.data.root_quat_w, body_acc_w.view(num_envs, 3))
+    return body_acc_b + asset.data.projected_gravity_b*9.81
 
 @configclass
 class ObservationsCfg:
@@ -144,41 +176,43 @@ class ObservationsCfg:
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        # observation terms (order preserved)
-        base_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.1, n_max=0.1))
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
-        projected_gravity = ObsTerm(
-            func=mdp.projected_gravity,
-            noise=Unoise(n_min=-0.05, n_max=0.05),
-        )
+        ### Command Input (What we requires to do)
         velocity_commands = ObsTerm(func=constant_commands)
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-1.5, n_max=1.5))
-        actions   = ObsTerm(func=mdp.last_action)
         
-        ## AlienGo does not has it,   TO CHECK !!
-        # height_scan = ObsTerm(
-        #     func=mdp.height_scan,
-        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+        ### Robot State (What we have)
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
+        # projected_gravity = ObsTerm(
+        #     func=mdp.projected_gravity, # base frame!
+        #     noise=Unoise(n_min=-0.05, n_max=0.05),
+        # )
+        # accel_base = ObsTerm(
+        #     func=my_body_acc_b,   # world frame!
+        #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
         #     noise=Unoise(n_min=-0.1, n_max=0.1),
-        #     clip=(-1.0, 1.0),
         # )
 
-        # HERE I WANT TO CALCULATE THE HEIGHT FROM FLOOR, since we do not have the scan
-        """
-        Idea:   distance between robot base and the mid point from the vertical interception between the lines 
-                that are connecting the opposite leg tips (ends)
+        imu_like_data = ObsTerm(
+            func=imu_acc_b,
+            params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
+            noise=Unoise(n_min=-0.1, n_max=0.1),
+        ) 
 
-                RWD: + if 25< h <60              25 and 60 are just two random values,
-                RWD: - if h<= 25 or h>=60        change them with the favourite/optimal ones
+        #TO DO by prof
+        # sum (prj_gravity + accel_base) = like IMU -----> DONE !
+        # test the trained policy +  controls --> are disturbaances !!! (eg: go2 sim.py)
+        # video headless
+        # walk x,y
+            
+        ### Joint state 
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.10, n_max=0.10))
 
-        """
+        actions   = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
-            self.enable_corruption = True
-            self.concatenate_terms = True
+            self.enable_corruption = True   # IDK
+            self.concatenate_terms = True   # IDK
 
-    # observation groups
     policy: PolicyCfg = PolicyCfg()
 
 
@@ -198,12 +232,12 @@ class EventCfg:
 class QuadrupedEnvCfg(ManagerBasedEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
-    # Scene settings
-    scene: MySceneCfg = MySceneCfg(num_envs=args_cli.num_envs, env_spacing=2.5)
-    # Basic settings
-    observations: ObservationsCfg = ObservationsCfg()
-    actions: ActionsCfg = ActionsCfg()
-    events: EventCfg = EventCfg()
+    scene : BaseSceneCfg            = BaseSceneCfg(num_envs=128, env_spacing=2.5)
+    actions : ActionsCfg            = ActionsCfg()
+    commands : CommandsCfg          = CommandsCfg() 
+    observations : ObservationsCfg  = ObservationsCfg()
+ 
+    events : EventCfg               = EventCfg()
 
     def __post_init__(self):
         """Post initialization."""
@@ -213,11 +247,6 @@ class QuadrupedEnvCfg(ManagerBasedEnvCfg):
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
         if ROUGH_TERRAIN:
             self.sim.physics_material = self.scene.terrain.physics_material
-        # update sensor update periods
-        # we tick all the sensors based on the smallest update period (physics update period)
-        if self.scene.height_scanner is not None:
-            self.scene.height_scanner.update_period = self.decimation * self.sim.dt  # 50 Hz
-
 
 def main():
     """Main function."""
@@ -225,16 +254,9 @@ def main():
     env_cfg = QuadrupedEnvCfg()
     env = ManagerBasedEnv(cfg=env_cfg)
 
-    ### RL POLICY ###
-    # policy_path = ISAACLAB_NUCLEUS_DIR + "/Policies/ANYmal-C/HeightScan/policy.pt"
-    # # check if policy file exists
-    # if not check_file_path(policy_path):
-    #     raise FileNotFoundError(f"Policy file '{policy_path}' does not exist.")
-    # file_bytes = read_file(policy_path)
-    # # jit load the policy
-    # policy = torch.jit.load(file_bytes).to(env.device).eval()
+    policy_path = '/home/rl_sim/RL_Dog/runs/AlienGo_v3_stoptry_31_07_IMU_81%stable/checkpoints/best_agent.pt'
+    policy = torch.jit.load(policy_path).to("cuda").eval()
 
-    # simulate physics
     count = 0
     obs, _ = env.reset()
     while simulation_app.is_running():
@@ -246,7 +268,7 @@ def main():
                 print("-" * 80)
                 print("[INFO]: Resetting environment...")
             # infer action
-            action = None    ################################## PUT HERE THE TRAINED POLICY !!!!!
+            action = policy    ################################## PUT HERE THE TRAINED POLICY !!!!!
             # step env
             obs, _ = env.step(action)
             # update counter
