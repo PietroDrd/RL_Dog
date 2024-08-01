@@ -104,14 +104,14 @@ class MySceneCfg(InteractiveSceneCfg):
     robot: ArticulationCfg = AliengoCFG_Black.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
     # Sensor implemented in Anymal, idk if ALIENGO HAS IT
-    # height_scanner = RayCasterCfg(
-    #     prim_path="{ENV_REGEX_NS}/Robot/base",
-    #     offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
-    #     attach_yaw_only=True,
-    #     pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
-    #     debug_vis=True,
-    #     mesh_prim_paths=["/World/ground"],
-    # )
+    height_scanner = RayCasterCfg(
+        prim_path="{ENV_REGEX_NS}/Robot/base",
+        offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+        attach_yaw_only=True,
+        pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=[1.6, 1.0]),
+        debug_vis=True,
+        mesh_prim_paths=["/World/ground"],
+    )
 
     # lights
     light = AssetBaseCfg(
@@ -157,12 +157,12 @@ class ObservationsCfg:
         actions   = ObsTerm(func=mdp.last_action)
         
         ## AlienGo does not has it,   TO CHECK !!
-        # height_scan = ObsTerm(
-        #     func=mdp.height_scan,
-        #     params={"sensor_cfg": SceneEntityCfg("height_scanner")},
-        #     noise=Unoise(n_min=-0.1, n_max=0.1),
-        #     clip=(-1.0, 1.0),
-        # )
+        height_scan = ObsTerm(
+            func=mdp.height_scan,
+            params={"sensor_cfg": SceneEntityCfg("height_scanner")},
+            noise=Unoise(n_min=-0.1, n_max=0.1),
+            clip=(-1.0, 1.0),
+        )
 
         # HERE I WANT TO CALCULATE THE HEIGHT FROM FLOOR, since we do not have the scan
         """
@@ -226,30 +226,29 @@ def main():
     env = ManagerBasedEnv(cfg=env_cfg)
 
     ### RL POLICY ###
-    # policy_path = ISAACLAB_NUCLEUS_DIR + "/Policies/ANYmal-C/HeightScan/policy.pt"
-    # # check if policy file exists
-    # if not check_file_path(policy_path):
-    #     raise FileNotFoundError(f"Policy file '{policy_path}' does not exist.")
-    # file_bytes = read_file(policy_path)
-    # # jit load the policy
-    # policy = torch.jit.load(file_bytes).to(env.device).eval()
+    policy_path = ISAACLAB_NUCLEUS_DIR + "/Policies/ANYmal-C/HeightScan/policy.pt"
+    # check if policy file exists
+    if not check_file_path(policy_path):
+        raise FileNotFoundError(f"Policy file '{policy_path}' does not exist.")
+    file_bytes = read_file(policy_path)
+    # jit load the policy
+    policy = torch.jit.load(file_bytes).to(env.device).eval()
 
     # simulate physics
     count = 0
     obs, _ = env.reset()
     while simulation_app.is_running():
         with torch.inference_mode():
-            # reset
+
             if count % 1000 == 0:
                 obs, _ = env.reset()
                 count = 0
                 print("-" * 80)
                 print("[INFO]: Resetting environment...")
-            # infer action
-            action = None    ################################## PUT HERE THE TRAINED POLICY !!!!!
-            # step env
+
+
+            action = policy(obs["policy"])    ################################## PUT HERE THE TRAINED POLICY !!!!!
             obs, _ = env.step(action)
-            # update counter
             count += 1
 
     # close the environment

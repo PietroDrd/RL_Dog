@@ -140,6 +140,7 @@ class PPO_v1:
         )
         return agent
     
+    ########### TRAINING ###########
     def train_sequential(self, timesteps=20000, headless=False):
         cfg_trainer= {"timesteps": timesteps, "headless": headless}
         timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
@@ -176,11 +177,7 @@ class PPO_v1:
 
         except Exception as e:
             print(f"An error occurred while setting up the experiment directory: {e}")
-        trainer.train() 
-        
-        # model_path = "/home/rl_sim/RL_Dog/runs/py_models"
-        # torch.save(self.agent.models["policy"].net.state_dict(), model_path)
-
+        trainer.train()
 
     def train_parallel(self, timesteps=20000, headless=False):
         timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
@@ -220,8 +217,18 @@ class PPO_v1:
             print(f"An error occurred while setting up the experiment directory: {e}")
         trainer.train()
 
-        # model_path = "/home/rl_sim/RL_Dog/runs/py_models"
-        # torch.save(self.agent.models["policy"].net.state_dict(), model_path)
+    ########### EVALUAION ###########
+    def trainer_seq_eval(self, path: str, timesteps=20000, headless=False):
+        cfg_trainer= {"timesteps": timesteps, "headless": headless}
+        trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
+        trainer.eval()
+
+    def trainer_par_eval(self, path: str, timesteps=20000, headless=False):
+        cfg_trainer= {"timesteps": timesteps, "headless": headless}
+        trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
+        trainer.eval()
+    
+
 
 #########################################################################################
 

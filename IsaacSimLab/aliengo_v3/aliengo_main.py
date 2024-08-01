@@ -58,6 +58,7 @@ cmd -->     tensorboard --logdir = "/home/rl_sim/RL_Dog/runs    (SERVER)
 """
 
 MODE = 1
+TRAIN = 0         # 1 for training, 0 for evaluation 
 
 def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
@@ -92,9 +93,13 @@ def main():
     agent = PPO_v1(env=env, device=device, verbose=1)
     print(Fore.YELLOW + '[INFO-AlienGo] Start trianing' + Style.RESET_ALL)
 
-    agent.train_sequential(timesteps=20000, headless=False)
-    #agent.train_parallel(timesteps=20000, headless=False)
-
+    if TRAIN:
+        #agent.train_sequential(timesteps=20000, headless=False)
+        agent.train_parallel(timesteps=20000, headless=False)
+    else:
+        path = "runs/AlienGo_v3_stoptry_31_07_IMU_81%stable/checkpoints/best_agent.pt"
+        # agent.trainer_seq_eval(path)
+        agent.trainer_par_eval(path)
     env.close()
 
 if __name__ == "__main__":
