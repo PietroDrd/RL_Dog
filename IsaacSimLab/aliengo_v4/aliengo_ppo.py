@@ -125,7 +125,7 @@ class PPO_v1:
 
         self.config["experiment"]["directory"] = "/home/rl_sim/RL_Dog/runs"
 
-        base_name  = "AlienGo_v3_stoptry"
+        base_name  = "AlienGo_v4_stoptry"
         timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
         experiment_name = f"{base_name}_{timestamp}"
         self.config["experiment"]["experiment_name"] = experiment_name
@@ -147,7 +147,7 @@ class PPO_v1:
         trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
                
         try:
-            experiment_name = "AlienGo_v3_stoptry"
+            experiment_name = "AlienGo_v4_stoptry"
             directory = f"/home/rl_sim/RL_Dog/runs/{experiment_name}_{timestamp}"
             os.makedirs(directory, exist_ok=True)
 
@@ -185,7 +185,7 @@ class PPO_v1:
         trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
 
         try:
-            experiment_name = "AlienGo_v3_stoptry"
+            experiment_name = "AlienGo_v4_stoptry"
             directory = f"/home/rl_sim/RL_Dog/runs/{experiment_name}_{timestamp}"
             os.makedirs(directory, exist_ok=True)
 

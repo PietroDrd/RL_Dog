@@ -7,7 +7,7 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v3/aliengo_main.py --num_envs 256
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_main.py --num_envs 496
 
 Launch Isaac Sim Simulator first.
 """
@@ -47,6 +47,7 @@ import datetime
 from colorama import Fore, Style
 
 import tensorboard
+
 """
 cmd -->     tensorboard --logdir = "/home/rl_sim/RL_Dog/runs    (SERVER)
             or
@@ -56,11 +57,13 @@ cmd -->     tensorboard --logdir = "/home/rl_sim/RL_Dog/runs    (SERVER)
 """
 
 TRAIN = 0         # 1 for training, 0 for evaluation 
+
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     env_cfg = AliengoEnvCfg()
     env_cfg.scene.num_envs = args_cli.num_envs
+
     try:
         if args_cli.video:
             timestamp = datetime.now().strftime('%d_%m_%H:%M')

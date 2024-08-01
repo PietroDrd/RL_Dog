@@ -193,7 +193,6 @@ class ObservationsCfg:
         ) 
 
         #TO DO by prof
-        # sum (prj_gravity + accel_base) = like IMU -----> DONE !
         # test the trained policy +  controls --> are disturbaances !!! (eg: go2 sim.py)
         # video headless
         # walk x,y
