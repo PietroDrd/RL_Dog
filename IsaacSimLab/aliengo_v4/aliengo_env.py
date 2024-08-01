@@ -161,7 +161,9 @@ def imu_acc_b(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     num_envs = asset.data.body_acc_w.shape[0]  # Number of environments (instances)
     body_acc_w = asset.data.body_acc_w[:, asset_cfg.body_ids, :3]
     body_acc_b = math_utils.quat_rotate_inverse(asset.data.root_quat_w, body_acc_w.view(num_envs, 3))
-    return body_acc_b + asset.data.projected_gravity_b*9.81
+
+    print(f"[DATA-AlienGo] Projected gravity: {asset.data.projected_gravity_b}")
+    return body_acc_b + asset.data.projected_gravity_b*9.81     # Projected gravity is normalized
 
 @configclass
 class ObservationsCfg:
