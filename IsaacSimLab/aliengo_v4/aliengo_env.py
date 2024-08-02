@@ -43,6 +43,9 @@ import omni.isaac.lab_tasks.manager_based.locomotion.velocity.mdp as mdp        
 global ROUGH_TERRAIN
 global HEIGHT_SCAN 
 
+#Print IMU data in report_debug file
+DEBUG_IMU = False
+
 ROUGH_TERRAIN = 0
 HEIGHT_SCAN = 0
 
@@ -162,7 +165,17 @@ def imu_acc_b(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     body_acc_w = asset.data.body_acc_w[:, asset_cfg.body_ids, :3]
     body_acc_b = math_utils.quat_rotate_inverse(asset.data.root_quat_w, body_acc_w.view(num_envs, 3))
 
-    print(f"[DATA-AlienGo] Projected gravity: {asset.data.projected_gravity_b}")
+    if DEBUG_IMU:
+        with open("/home/rl_sim/RL_Dog/report_debug/gravity.txt", 'a') as log_file:
+            #log_file.write(f"[DATA-AlienGo] Projected gravity: {asset.data.projected_gravity_b}\n")
+            projected_gravity_b = asset.data.projected_gravity_b
+            imu = body_acc_b + projected_gravity_b*9.81
+            #log_file.write(f"BodyAccW-> {body_acc_w}\n")
+            log_file.write(f"BodyAccB-> {body_acc_b}\n")
+            log_file.write(f"PrjGravB-> {projected_gravity_b}\n")
+            log_file.write(f"Imu_B-> {imu}\n")
+            log_file.write(f"############### NextEpoch ###############\n")
+    
     return body_acc_b + asset.data.projected_gravity_b*9.81     # Projected gravity is normalized
 
 @configclass

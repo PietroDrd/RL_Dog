@@ -55,8 +55,8 @@ cmd -->     tensorboard --logdir = "/home/rl_sim/RL_Dog/runs    (SERVER)
 
             http://localhost:6006
 """
-
-TRAIN = 0         # 1 for training, 0 for evaluation 
+# 1 for training, 0 for evaluation 
+TRAIN = 1
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
