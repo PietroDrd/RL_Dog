@@ -167,7 +167,6 @@ def imu_acc_b(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
 
     if DEBUG_IMU:
         with open("/home/rl_sim/RL_Dog/report_debug/gravity.txt", 'a') as log_file:
-            #log_file.write(f"[DATA-AlienGo] Projected gravity: {asset.data.projected_gravity_b}\n")
             projected_gravity_b = asset.data.projected_gravity_b
             imu = body_acc_b + projected_gravity_b*9.81
             #log_file.write(f"BodyAccW-> {body_acc_w}\n")
