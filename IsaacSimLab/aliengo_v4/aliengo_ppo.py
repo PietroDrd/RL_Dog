@@ -100,18 +100,18 @@ class PPO_v1:
         model_nn_["value"] = model_nn_["policy"]
 
         # instantiate a memory as rollout buffer (any memory can be used for this)
-        mem_size = 32
+        mem_size = 32           # 24 with 4096 envs
         batch_dim = 6
         memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
         self.config["rollouts"] = mem_size
-        self.config["learning_epochs"] = 12
+        self.config["learning_epochs"] = 12 # reduce it a bit, try!
         self.config["mini_batches"] = 4 #min(mem_size * batch_dim / 48, 2 )# 48Gb VRAM of the RTX A6000
         
 
         self.config["lambda"] = 0.95 # GAE, Generalized Advantage Estimation: bias and variance balance
         self.config["discount_factor"] = 0.98 # ~1 Long Term, ~0 Short Term Rewards | Standard: 0.99
-        self.config["entropy_loss_scale"] = 0.01 # Entropy Loss: ~1 --> Exploration vs ~0 --> Exploitation
-
+        self.config["entropy_loss_scale"] = 0.001 # Entropy Loss: ~1 --> Exploration vs ~0 --> Exploitation
+                                                #0.002 <> 0.005
         # Adjusts Learning Rate
         #self.config["learning_rate"] = 5e-4
         self.config["learning_rate_scheduler"] = KLAdaptiveRL   # Has problems with "verbose" param --> commented

@@ -267,11 +267,12 @@ class RewardsCfg:
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_exp, weight=0.9, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
-    desired_calf_contacts = RewTerm(
-        func=mdp.undesired_contacts,
-        weight=0.015,
-        params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},    # *_foot doesen't work even if in URDf is present
-    )
+    # CHECK IF ITs a False Positive
+    # desired_calf_contacts = RewTerm(
+    #     func=mdp.undesired_contacts,
+    #     weight=0.015,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},    # *_foot doesen't work even if in URDf is present
+    # )
 
     #### BODY PENALITIES
     base_height_l2 = RewTerm(
