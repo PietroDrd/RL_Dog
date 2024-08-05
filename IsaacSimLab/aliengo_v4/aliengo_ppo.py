@@ -100,18 +100,18 @@ class PPO_v1:
         model_nn_["value"] = model_nn_["policy"]
 
         # instantiate a memory as rollout buffer (any memory can be used for this)
-        mem_size = 32           # 24 with 4096 envs
+        mem_size = 24 if self.num_envs > 1028 else 32           # 24 with 4096 envs
         batch_dim = 6
         memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
         self.config["rollouts"] = mem_size
-        self.config["learning_epochs"] = 12 # reduce it a bit, try!
+        self.config["learning_epochs"] = 6 # reduce it a bit, try!
         self.config["mini_batches"] = 4 #min(mem_size * batch_dim / 48, 2 )# 48Gb VRAM of the RTX A6000
         
 
         self.config["lambda"] = 0.95 # GAE, Generalized Advantage Estimation: bias and variance balance
         self.config["discount_factor"] = 0.98 # ~1 Long Term, ~0 Short Term Rewards | Standard: 0.99
-        self.config["entropy_loss_scale"] = 0.001 # Entropy Loss: ~1 --> Exploration vs ~0 --> Exploitation
-                                                #0.002 <> 0.005
+        self.config["entropy_loss_scale"] = 0.006 # Entropy Loss: ~1 --> Exploration vs ~0 --> Exploitation
+                                                  # 0.002 <> 0.005
         # Adjusts Learning Rate
         #self.config["learning_rate"] = 5e-4
         self.config["learning_rate_scheduler"] = KLAdaptiveRL   # Has problems with "verbose" param --> commented
@@ -152,10 +152,26 @@ class PPO_v1:
             os.makedirs(directory, exist_ok=True)
 
             # Paths for source code files
+            ppo_config_file_path = os.path.join(directory, "PPO_config.txt")
             rewards_cfg_file_path = os.path.join(directory, "RewardsCfg_source.txt")
             observations_cfg_file_path = os.path.join(directory, "ObservationsCfg_source.txt")
 
-            # Save source code for RewardsCfg
+            try:
+                with open(ppo_config_file_path, 'w') as f:
+                    f.write("####### SEQUENTIAL TRAINING ####### \n\n")
+                    f.write(f"Num envs           -> {self.num_envs:>6} \n")
+                    f.write("-------------------- PPO CONFIG ------------------- \n")
+                    f.write(f"Rollouts           -> {self.config['rollouts']:>6} \n")
+                    f.write(f"Learning Epochs    -> {self.config['learning_epochs']:>6} \n")
+                    f.write(f"Mini Batches       -> {self.config['mini_batches']:>6} \n")
+                    f.write(f"Discount Factor    -> {self.config['discount_factor']:>6} \n")
+                    f.write(f"Lambda             -> {self.config['lambda']:>6} \n")
+                    f.write(f"Learning Rate      -> {self.config['learning_rate']:>6} \n")
+                    f.write(f"Entropy Loss Scale -> {self.config['entropy_loss_scale']:>6} \n")
+                print(f"Source code for PPOconfig saved to {ppo_config_file_path}")
+            except Exception as e:
+                print(f"Failed to save source code for PPOconfig: {e}")
+
             try:
                 rewards_cfg_source = inspect.getsource(RewardsCfg)
                 with open(rewards_cfg_file_path, 'w') as f:
@@ -165,7 +181,6 @@ class PPO_v1:
             except Exception as e:
                 print(f"Failed to save source code for RewardsCfg: {e}")
 
-            # Save source code for ObservationsCfg.PolicyCfg
             try:
                 observations_cfg_source = inspect.getsource(ObservationsCfg.PolicyCfg)
                 with open(observations_cfg_file_path, 'w') as f:
@@ -190,10 +205,24 @@ class PPO_v1:
             os.makedirs(directory, exist_ok=True)
 
             # Paths for source code files
+            ppo_config_file_path = os.path.join(directory, "PPO_config.txt")
             rewards_cfg_file_path = os.path.join(directory, "RewardsCfg_source.txt")
             observations_cfg_file_path = os.path.join(directory, "ObservationsCfg_source.txt")
 
-            # Save source code for RewardsCfg
+            try:
+                with open(ppo_config_file_path, 'w') as f:
+                    f.write("####### PARALLEL TRAINING ####### \n\n")
+                    f.write(f"Rollouts           -> {self.config['rollouts']:>6} \n")
+                    f.write(f"Learning Epochs    -> {self.config['learning_epochs']:>6} \n")
+                    f.write(f"Mini Batches       -> {self.config['mini_batches']:>6} \n")
+                    f.write(f"Discount Factor    -> {self.config['discount_factor']:>6} \n")
+                    f.write(f"Lambda             -> {self.config['lambda']:>6} \n")
+                    f.write(f"Learning Rate      -> {self.config['learning_rate']:>6} \n")
+                    f.write(f"Entropy Loss Scale -> {self.config['entropy_loss_scale']:>6} \n")
+                print(f"Source code for PPOconfig saved to {ppo_config_file_path}")
+            except Exception as e:
+                print(f"Failed to save source code for PPOconfig: {e}")
+            
             try:
                 rewards_cfg_source = inspect.getsource(RewardsCfg)
                 with open(rewards_cfg_file_path, 'w') as f:
@@ -203,7 +232,6 @@ class PPO_v1:
             except Exception as e:
                 print(f"Failed to save source code for RewardsCfg: {e}")
 
-            # Save source code for ObservationsCfg.PolicyCfg
             try:
                 observations_cfg_source = inspect.getsource(ObservationsCfg.PolicyCfg)
                 with open(observations_cfg_file_path, 'w') as f:

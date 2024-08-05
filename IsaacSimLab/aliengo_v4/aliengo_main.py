@@ -9,6 +9,10 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     cd IsaacLab_
     ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_main.py --num_envs 512
 
+    #IF HEADLESS:
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_main.py --num_envs 4096 --headless --enable_cameras
+
+
 Launch Isaac Sim Simulator first.
 """
 
@@ -21,14 +25,13 @@ parser.add_argument('--env_spacing',    type=float, default=2.5,           help=
 parser.add_argument('--walk',           type=int,   default=0,             help='ask to Walk or not (1,0)')
 parser.add_argument("--task",           type=str,   default="AlienGo-v0",  help="Name of the task.")
 
-#parser.add_argument("--headless",       action="store_true",    default=False,  help="GUI or not GUI.")
+#parser.add_argument("--headless",       action="store_true",    default=True,  help="GUI or not GUI.")
 parser.add_argument("--video",          action="store_true",    default=True,  help="Record videos during training.")
-parser.add_argument("--video_length",   type=int,               default=200,    help="Length of the recorded video (in steps).")
+parser.add_argument("--video_length",   type=int,               default=400,    help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int,               default=4000,   help="Interval between video recordings (in steps).")
 #parser.add_argument("--device",         type=str,               default="cpu",  help="cpu or cuda.")
-args = parser.parse_args()
+#args = parser.parse_args()
 
-# append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 app_launcher = AppLauncher(args_cli)
@@ -57,8 +60,9 @@ cmd -->     tensorboard --logdir = /home/rl_sim/RL_Dog/runs    (SERVER)
             http://localhost:6006
 """
 # 1 for training, 0 for evaluation 
+
 TRAIN = 1
-VIDEO = 0
+HEADLESS = True
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -97,8 +101,8 @@ def main():
     print(Fore.GREEN + '[ALIENGO-INFO] Start training' + Style.RESET_ALL)
 
     if TRAIN:
-        agent.train_sequential(timesteps=20000, headless=False)
-        #agent.train_parallel(timesteps=20000, headless=False)
+        agent.train_sequential(timesteps=25000, headless=HEADLESS)
+        #agent.train_parallel(timesteps=25000, headless=HEADLESS)
     else:
         path = "runs/AlienGo_v3_stoptry_31_07_IMU_81%stable/checkpoints/best_agent.pt"
         agent.trainer_seq_eval(path)

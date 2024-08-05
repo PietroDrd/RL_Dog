@@ -190,26 +190,12 @@ class ObservationsCfg:
         
         ### Robot State (What we have)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
-        # projected_gravity = ObsTerm(
-        #     func=mdp.projected_gravity, # base frame!
-        #     noise=Unoise(n_min=-0.05, n_max=0.05),
-        # )
-        # accel_base = ObsTerm(
-        #     func=my_body_acc_b,   # world frame!
-        #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
-        #     noise=Unoise(n_min=-0.1, n_max=0.1),
-        # )
 
         imu_like_data = ObsTerm(
             func=imu_acc_b,
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
             noise=Unoise(n_min=-0.1, n_max=0.1),
-        ) 
-
-        #TO DO by prof
-        # test the trained policy +  controls --> are disturbaances !!! (eg: go2 sim.py)
-        # video headless
-        # walk x,y
+        )
             
         ### Joint state 
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
@@ -233,7 +219,7 @@ class EventCfg:
     # Reset the robot with initial velocity
     reset_scene = EventTerm(
         func=mdp.reset_root_state_uniform,
-        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.22, 0.08),
+        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.22, 0.12),
                                "roll": (-0.1, 0.1), "pitch": (-0.1, 0.1),}, #cancel if want it planar
                 "velocity_range": {"x": (0.2, 1.0), "y": (-0.08, 0.08)},}, 
         mode="reset",
@@ -245,9 +231,9 @@ class EventCfg:
     )
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
-        params={"velocity_range": {"x": (-0.4, 0.4), "y": (-0.3, 0.3), "z": (-0.05, 0.05)}},
+        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.05, 0.05)}},
         mode="interval",
-        interval_range_s=(0.2,1.5),
+        interval_range_s=(0.2,2.0),
     )
 
 
@@ -267,44 +253,27 @@ class RewardsCfg:
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_exp, weight=0.9, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
-    # CHECK IF ITs a False Positive
-    # desired_calf_contacts = RewTerm(
-    #     func=mdp.undesired_contacts,
-    #     weight=0.015,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"), "threshold": 1.0},    # *_foot doesen't work even if in URDf is present
-    # )
 
     #### BODY PENALITIES
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=-0.8,
+        weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
     )
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.9)
     body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.7)
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.4)
     
-    lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.3)
-    ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.6)
+    lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.2)
+    #ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.6)
     
     #### JOINTS PENALITIES
-    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.9)
-    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.2)
-    #dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,       weight=-2e-6)
-    #dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2,   weight=-1.0e-7)
+    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.4)
+    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.001)
     dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
-
-    #### OTHER PENALITIES
-    # feet_air_time = RewTerm(
-    #     func=mdp.feet_air_time,
-    #     weight=0.04,
-    #     params={
-    #         "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),   # *_foot doesen't work even if in URDf is present
-    #         "command_name": "base_velocity",
-    #         "threshold": 0.5,
-    #     },
-    # )
-
-    action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.02)
+    #dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,       weight=-2e-6)
+    dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2,   weight=1.0e-7)
+    
+    action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.01)
     undesired_thigh_contacts = RewTerm(
         func=mdp.undesired_contacts,
         weight=-0.8,
@@ -360,11 +329,11 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 2.5
+        self.episode_length_s = 3.0
         self.sim.physics_material = self.scene.terrain.physics_material
 
         # viewer settings
-        self.viewer.eye = (6.0, 0.0, 4.5)
+        self.viewer.eye = (5.0, 0.5, 2.0)
 
         self.sim.physics_material = self.scene.terrain.physics_material
         if HEIGHT_SCAN:
