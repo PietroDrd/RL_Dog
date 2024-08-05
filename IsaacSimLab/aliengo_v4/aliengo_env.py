@@ -190,7 +190,6 @@ class ObservationsCfg:
         
         ### Robot State (What we have)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
-
         imu_like_data = ObsTerm(
             func=imu_acc_b,
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
@@ -199,7 +198,7 @@ class ObservationsCfg:
             
         ### Joint state 
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.10, n_max=0.10))
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.06, n_max=0.06))
 
         actions   = ObsTerm(func=mdp.last_action)
 
@@ -241,8 +240,6 @@ class EventCfg:
 
 # Available strings: ['base', 'FL_hip', 'FL_thigh', 'FL_calf', 'FR_hip', 'FR_thigh', 'FR_calf', 
 #                             'RL_hip', 'RL_thigh', 'RL_calf', 'RR_hip', 'RR_thigh', 'RR_calf']
-# IDK why not "*_foot" (and "trunk") even if is present in URDF
-
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
@@ -257,26 +254,24 @@ class RewardsCfg:
     #### BODY PENALITIES
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=-1.0,
+        weight=-0.9,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
     )
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.9)
-    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.7)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.7)
+    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.8)
     
-    lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.2)
-    #ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.6)
+    lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.6)
+    ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.4)
     
     #### JOINTS PENALITIES
-    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.4)
-    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.001)
+    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.8)
+    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.2)
     dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
-    #dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,       weight=-2e-6)
-    dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2,   weight=1.0e-7)
-    
+
     action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.01)
     undesired_thigh_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-0.8,
+        weight=-0.5,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thigh"), "threshold": 1.0},
     )
     undesired_body_contacts = RewTerm(
@@ -289,18 +284,6 @@ class RewardsCfg:
 class TerminationsCfg:
     """Termination terms for the MDP."""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-
-    ### Too strong/angry ###
-    # base_contact = DoneTerm(
-    #     func=mdp.illegal_contact,
-    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 10.0},
-    # )
-
-    # upside_down = DoneTerm(
-    #     func = mdp.bad_orientation,
-    #     params={"limit_angle": 1.48}, # whole robot | radiants: 1.5 ~ 90° Deg
-    # )
-
     
 @configclass
 class CurriculumCfg:

@@ -48,11 +48,11 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
         """
 
         print(f"[AlienGo - PPO] Observation Space: {self.num_observations}, Action Space: {self.num_actions}")
-        self.net = nn.Sequential(nn.Linear(self.num_observations, 256), # activ fcns were ELU
+        self.net = nn.Sequential(nn.Linear(self.num_observations, 128), # activ fcns were ELU
+                                 nn.ELU(),
+                                 nn.Linear(128, 256),
                                  nn.ELU(),
                                  nn.Linear(256, 128),
-                                 nn.ELU(),
-                                 nn.Linear(128, 128),
                                  nn.ELU())
 
         self.mean_layer = nn.Linear(128, self.num_actions)       # num_actions: 12
@@ -110,7 +110,7 @@ class PPO_v1:
 
         self.config["lambda"] = 0.95 # GAE, Generalized Advantage Estimation: bias and variance balance
         self.config["discount_factor"] = 0.98 # ~1 Long Term, ~0 Short Term Rewards | Standard: 0.99
-        self.config["entropy_loss_scale"] = 0.006 # Entropy Loss: ~1 --> Exploration vs ~0 --> Exploitation
+        self.config["entropy_loss_scale"] = 0.005 # Entropy Loss: ~1 --> Exploration vs ~0 --> Exploitation
                                                   # 0.002 <> 0.005
         # Adjusts Learning Rate
         #self.config["learning_rate"] = 5e-4

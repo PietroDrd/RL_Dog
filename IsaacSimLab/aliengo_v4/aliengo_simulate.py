@@ -7,10 +7,10 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_main.py --num_envs 512
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_simulate.py --num_envs 1
 
     #IF HEADLESS:
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_main.py --num_envs 4096 --headless --enable_cameras
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_simulate.py --num_envs 1 --headless --enable_cameras
 
 
 Launch Isaac Sim Simulator first.
@@ -44,6 +44,9 @@ from omni.isaac.lab.utils.dict  import print_dict
 from aliengo_env import AliengoEnvCfg
 from aliengo_ppo import PPO_v1
 
+import aliengo_env
+import carb         #from omni
+
 import os
 import torch
 import datetime
@@ -59,9 +62,7 @@ cmd -->     tensorboard --logdir = /home/rl_sim/RL_Dog/runs    (SERVER)
 
             http://localhost:6006
 """
-# 1 for training, 0 for evaluation 
 
-TRAIN = 1
 HEADLESS = True
 
 def main():
@@ -81,7 +82,7 @@ def main():
         env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
         if args_cli.video:
             timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
-            log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_{timestamp}/"
+            log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_{timestamp}/videos"
             os.makedirs(log_dir, exist_ok=True)
             video_kwargs = {
                 "video_folder": os.path.join(log_dir, "videos"),
@@ -100,14 +101,56 @@ def main():
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
     print(Fore.GREEN + '[ALIENGO-INFO] Start training' + Style.RESET_ALL)
 
-    if TRAIN:
-        agent.train_sequential(timesteps=25000, headless=HEADLESS)
-        #agent.train_parallel(timesteps=25000, headless=HEADLESS)
-    else:
-        path = "runs/AlienGo_v3_stoptry_31_07_IMU_81%stable/checkpoints/best_agent.pt"
-        agent.trainer_seq_eval(path)
-        #agent.trainer_par_eval(path)
+    path = "runs/AlienGo_v3_stoptry_31_07_IMU_81%stable/checkpoints/best_agent.pt"
+    agent.trainer_seq_eval(path)
+    #agent.trainer_par_eval(path)
     env.close()
+
+
+def sub_keyboard_event(event, *args, **kwargs) -> bool:
+
+    if len(aliengo_env.base_command) > 0:
+        if event.type == carb.input.KeyboardEventType.KEY_PRESS:
+            if event.input.name == 'W':
+                aliengo_env.base_command[0] = [1, 0, 0]
+            if event.input.name == 'S':
+                aliengo_env.base_command[0] = [-1, 0, 0]
+            if event.input.name == 'A':
+                aliengo_env.base_command[0] = [0, 1, 0]
+            if event.input.name == 'D':
+                aliengo_env.base_command[0] = [0, -1, 0]
+            if event.input.name == 'Q':
+                aliengo_env.base_command[0] = [0, 0, 1]
+            if event.input.name == 'E':
+                aliengo_env.base_command[0] = [0, 0, -1]
+
+            if len(aliengo_env.base_command) > 1:
+                if event.input.name == 'I':
+                    aliengo_env.base_command[1] = [1, 0, 0]
+                if event.input.name == 'K':
+                    aliengo_env.base_command[1] = [-1, 0, 0]
+                if event.input.name == 'J':
+                    aliengo_env.base_command[1] = [0, 1, 0]
+                if event.input.name == 'L':
+                    aliengo_env.base_command[1] = [0, -1, 0]
+                if event.input.name == 'U':
+                    aliengo_env.base_command[1] = [0, 0, 1]
+                if event.input.name == 'O':
+                    aliengo_env.base_command[1] = [0, 0, -1]
+        elif event.type == carb.input.KeyboardEventType.KEY_RELEASE:
+            for i in range(len(aliengo_env.base_command)):
+                aliengo_env.base_command[i] = [0, 0, 0]
+    return True
+
+def specify_cmd_for_robots(numv_envs):
+    base_cmd = []
+    for _ in range(numv_envs):
+        base_cmd.append([0, 0, 0])
+    aliengo_env.base_command = base_cmd
+
+
+
+
 
 if __name__ == "__main__":
     main()
