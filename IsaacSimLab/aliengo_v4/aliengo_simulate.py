@@ -26,7 +26,7 @@ parser.add_argument('--walk',           type=int,   default=0,             help=
 parser.add_argument("--task",           type=str,   default="AlienGo-v0",  help="Name of the task.")
 
 #parser.add_argument("--headless",       action="store_true",    default=True,  help="GUI or not GUI.")
-parser.add_argument("--video",          action="store_true",    default=True,  help="Record videos during training.")
+parser.add_argument("--video",          action="store_true",    default=False,  help="Record videos during training.")
 parser.add_argument("--video_length",   type=int,               default=400,    help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int,               default=4000,   help="Interval between video recordings (in steps).")
 #parser.add_argument("--device",         type=str,               default="cpu",  help="cpu or cuda.")
@@ -40,12 +40,14 @@ simulation_app = app_launcher.app
 from omni.isaac.lab.envs        import ManagerBasedRLEnv
 from omni.isaac.lab.envs        import ManagerBasedRLEnvCfg
 from omni.isaac.lab.utils.dict  import print_dict
+from omni.isaac.lab_tasks.utils import get_checkpoint_path
 
 from aliengo_env import AliengoEnvCfg
 from aliengo_ppo import PPO_v1
 
 import aliengo_env
 import carb         #from omni
+import omni.appwindow
 
 import os
 import torch
@@ -67,20 +69,27 @@ HEADLESS = True
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
-
     gym.register(
         id=args_cli.task,
         entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
         kwargs={'cfg': AliengoEnvCfg}
     )
 
+    # acquire input interface
+    _input = carb.input.acquire_input_interface()
+    _appwindow = omni.appwindow.get_default_app_window()
+    _keyboard = _appwindow.get_keyboard()
+    _sub_keyboard = _input.subscribe_to_keyboard_events(_keyboard, sub_keyboard_event)
+
+    specify_cmd_for_robots(args_cli.num_envs)
+
     env_cfg = AliengoEnvCfg()
     env_cfg.scene.num_envs = args_cli.num_envs
     env_cfg.viewer.resolution = (640, 480)
 
     try:
-        env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
         if args_cli.video:
+            env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
             timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
             log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_{timestamp}/videos"
             os.makedirs(log_dir, exist_ok=True)
@@ -93,17 +102,41 @@ def main():
             print(Fore.GREEN + "[ALIENGO-INFO] Recording videos during training." + Style.RESET_ALL)
             print_dict(video_kwargs, nesting=4)
             env = gym.wrappers.RecordVideo(env, **video_kwargs)
+        else:
+            env = ManagerBasedRLEnv(cfg=env_cfg)
     except Exception as e:
         print(Fore.RED + f'[ALIENGO-VIDEO-ERROR] {e}' + Style.RESET_ALL)
+        env = ManagerBasedRLEnv(cfg=env_cfg)
         pass
 
     #env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
-    print(Fore.GREEN + '[ALIENGO-INFO] Start training' + Style.RESET_ALL)
+    path = "/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/best_agent.pt"
+    agent.agent.load(path)
 
-    path = "runs/AlienGo_v3_stoptry_31_07_IMU_81%stable/checkpoints/best_agent.pt"
-    agent.trainer_seq_eval(path)
-    #agent.trainer_par_eval(path)
+    if True:
+
+        print(Fore.GREEN + '[INFO-AlienGo] Policy Loaded' + Style.RESET_ALL)
+        count = 0
+        cnt_limit = 1000    # Set the sim reset time !!
+        obs, _ = env.reset()
+        while simulation_app.is_running():
+            with torch.inference_mode():
+                # reset
+                if count % cnt_limit == 0:               
+                    obs, _ = env.reset()
+                    count = 0          #if uncommented it will loop forever
+                    print("-" * 80)
+                    print("[INFO]: Resetting environment...")
+                
+                action = agent.agent(obs)     # TO FIND OUT HOW TO INOUT THE UÌOBSERVATIONS!!!!
+                obs, _ = env.step(action)
+                count += 1
+                if count == 8*cnt_limit:
+                    break
+    else:
+        agent.trainer_seq_eval(path)
+        #agent.trainer_par_eval(path)
     env.close()
 
 
@@ -147,9 +180,6 @@ def specify_cmd_for_robots(numv_envs):
     for _ in range(numv_envs):
         base_cmd.append([0, 0, 0])
     aliengo_env.base_command = base_cmd
-
-
-
 
 
 if __name__ == "__main__":

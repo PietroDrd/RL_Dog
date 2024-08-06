@@ -212,9 +212,7 @@ class ObservationsCfg:
 @configclass
 class EventCfg:
     """Configuration for events."""
-
-    #reset_scene = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
-
+    
     # Reset the robot with initial velocity
     reset_scene = EventTerm(
         func=mdp.reset_root_state_uniform,
@@ -254,24 +252,25 @@ class RewardsCfg:
     #### BODY PENALITIES
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=-0.9,
+        weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
     )
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.7)
-    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.8)
+    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.5)
     
     lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.6)
     ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.4)
     
     #### JOINTS PENALITIES
-    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.8)
+    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.9)
     dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.2)
-    dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
+    #dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
 
-    action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.01)
+    #action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.01)
+
     undesired_thigh_contacts = RewTerm(
         func=mdp.undesired_contacts,
-        weight=-0.5,
+        weight=-0.6,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_thigh"), "threshold": 1.0},
     )
     undesired_body_contacts = RewTerm(

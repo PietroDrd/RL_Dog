@@ -48,9 +48,9 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
         """
 
         print(f"[AlienGo - PPO] Observation Space: {self.num_observations}, Action Space: {self.num_actions}")
-        self.net = nn.Sequential(nn.Linear(self.num_observations, 128), # activ fcns were ELU
+        self.net = nn.Sequential(nn.Linear(self.num_observations, 256), # activ fcns were ELU
                                  nn.ELU(),
-                                 nn.Linear(128, 256),
+                                 nn.Linear(256, 256),
                                  nn.ELU(),
                                  nn.Linear(256, 128),
                                  nn.ELU())
@@ -85,47 +85,40 @@ from aliengo_env import RewardsCfg
 from aliengo_env import ObservationsCfg
 
 class PPO_v1:
-    def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device = "cuda", verbose=0):
-        self.env = wrap_env(env, verbose=verbose, wrapper="isaaclab")    # SKRL: wrapper = "auto", by default,  otherwise--> "isaac-orbit"
+    def __init__(self, env: ManagerBasedRLEnv, config=PPO_DEFAULT_CONFIG, device="cuda", verbose=0):
+        self.env = wrap_env(env, verbose=verbose, wrapper="isaaclab")
         self.config = config
-        self.device = "cuda" 
-        self.num_envs = env.num_envs   #needed for MEMORY of PPO, num_envs comes from "args" of the env object
+        self.device = device
+        self.num_envs = env.num_envs
         self.agent = self._create_agent()
 
     def _create_agent(self):
-
-        #Create the model: In --> feedbacks/states , Out --> Actions/Actuators
-        model_nn_ = {}
-        model_nn_["policy"] = Shared(self.env.observation_space, self.env.action_space, self.device)
-        model_nn_["value"] = model_nn_["policy"]
-
-        # instantiate a memory as rollout buffer (any memory can be used for this)
-        mem_size = 24 if self.num_envs > 1028 else 32           # 24 with 4096 envs
-        batch_dim = 6
-        memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
-        self.config["rollouts"] = mem_size
-        self.config["learning_epochs"] = 6 # reduce it a bit, try!
-        self.config["mini_batches"] = 4 #min(mem_size * batch_dim / 48, 2 )# 48Gb VRAM of the RTX A6000
+        model_nn_ = {
+            "policy": Shared(self.env.observation_space, self.env.action_space, self.device),
+            "value": Shared(self.env.observation_space, self.env.action_space, self.device)
+        }
         
+        mem_size = 24 if self.num_envs > 1028 else 32
+        memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
+        
+        self.config.update({
+            "rollouts": mem_size,           # 24 if many envs, 32 if few ones
+            "learning_epochs": 6,           # no more than 12
+            "mini_batches": 4,              # min(mem_size * batch_dim / 48, 2)   # 48Gb VRAM of the RTX A6000
+            "lambda": 0.95,                 # GAE, Generalized Advantage Estimation: bias and variance balance
+            "discount_factor": 0.98,        # ~1 Long Term, ~0 Short Term Rewards | Standard: 0.99
+            "entropy_loss_scale": 0.005,    # Entropy Loss: Exploration~1, Eploitation~0 | Standard: [0.0, 0.01]
+            "learning_rate": 5e-4,
+            "learning_rate_scheduler": KLAdaptiveRL,
+            "learning_rate_scheduler_kwargs": {"kl_threshold": 0.008},
+            "state_preprocessor": RunningStandardScaler,
+            "state_preprocessor_kwargs": {"size": self.env.observation_space, "device": self.device},
+            "value_preprocessor": RunningStandardScaler,
+            "value_preprocessor_kwargs": {"size": 1, "device": self.device},
+            "experiment": {"directory": "/home/rl_sim/RL_Dog/runs"}
+        })
 
-        self.config["lambda"] = 0.95 # GAE, Generalized Advantage Estimation: bias and variance balance
-        self.config["discount_factor"] = 0.98 # ~1 Long Term, ~0 Short Term Rewards | Standard: 0.99
-        self.config["entropy_loss_scale"] = 0.005 # Entropy Loss: ~1 --> Exploration vs ~0 --> Exploitation
-                                                  # 0.002 <> 0.005
-        # Adjusts Learning Rate
-        #self.config["learning_rate"] = 5e-4
-        self.config["learning_rate_scheduler"] = KLAdaptiveRL   # Has problems with "verbose" param --> commented
-        self.config["learning_rate_scheduler_kwargs"] = {"kl_threshold": 0.008}
-
-        # Standardize the input data by removing the mean and scaling
-        self.config["state_preprocessor"] = RunningStandardScaler
-        self.config["state_preprocessor_kwargs"] = {"size": self.env.observation_space, "device": self.device}
-        self.config["value_preprocessor"] = RunningStandardScaler
-        self.config["value_preprocessor_kwargs"] = {"size": 1, "device": self.device}
-
-        self.config["experiment"]["directory"] = "/home/rl_sim/RL_Dog/runs"
-
-        base_name  = "AlienGo_v4_stoptry"
+        base_name = "AlienGo_v4_stoptry"
         timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
         experiment_name = f"{base_name}_{timestamp}"
         self.config["experiment"]["experiment_name"] = experiment_name
@@ -139,130 +132,80 @@ class PPO_v1:
             device=self.device,
         )
         return agent
-    
-    ########### TRAINING ###########
-    def train_sequential(self, timesteps=20000, headless=False):
-        cfg_trainer= {"timesteps": timesteps, "headless": headless}
+
+    def _save_source_code(self, directory, training_type):
+        file_paths = {
+            "PPO_config.txt": self._get_ppo_config_content(training_type),
+            "RewardsCfg_source.txt": inspect.getsource(RewardsCfg),
+            "ObservationsCfg_source.txt": inspect.getsource(ObservationsCfg.PolicyCfg)
+        }
+
+        for file_name, content in file_paths.items():
+            file_path = os.path.join(directory, file_name)
+            try:
+                with open(file_path, 'w') as f:
+                    f.write(content)
+                print(f"Source code saved to {file_path}")
+            except Exception as e:
+                print(f"Failed to save source code for {file_name}: {e}")
+
+    def _get_ppo_config_content(self, training_type):
+        return (
+            f"####### {training_type.upper()} TRAINING ####### \n\n"
+            f"Num envs           -> {self.num_envs:>6} \n"
+            "-------------------- PPO CONFIG ------------------- \n"
+            f"Rollouts           -> {self.config['rollouts']:>6} \n"
+            f"Learning Epochs    -> {self.config['learning_epochs']:>6} \n"
+            f"Mini Batches       -> {self.config['mini_batches']:>6} \n"
+            f"Discount Factor    -> {self.config['discount_factor']:>6} \n"
+            f"Lambda             -> {self.config['lambda']:>6} \n"
+            f"Learning Rate      -> {self.config['learning_rate']:>6} \n"
+            f"Entropy Loss Scale -> {self.config['entropy_loss_scale']:>6} \n"
+        )
+
+    def _setup_experiment_directory(self, training_type):
+        experiment_name = "AlienGo_v4_stoptry"
         timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
-        trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
-               
+        directory = f"/home/rl_sim/RL_Dog/runs/{experiment_name}_{timestamp}"
         try:
-            experiment_name = "AlienGo_v4_stoptry"
-            directory = f"/home/rl_sim/RL_Dog/runs/{experiment_name}_{timestamp}"
             os.makedirs(directory, exist_ok=True)
-
-            # Paths for source code files
-            ppo_config_file_path = os.path.join(directory, "PPO_config.txt")
-            rewards_cfg_file_path = os.path.join(directory, "RewardsCfg_source.txt")
-            observations_cfg_file_path = os.path.join(directory, "ObservationsCfg_source.txt")
-
-            try:
-                with open(ppo_config_file_path, 'w') as f:
-                    f.write("####### SEQUENTIAL TRAINING ####### \n\n")
-                    f.write(f"Num envs           -> {self.num_envs:>6} \n")
-                    f.write("-------------------- PPO CONFIG ------------------- \n")
-                    f.write(f"Rollouts           -> {self.config['rollouts']:>6} \n")
-                    f.write(f"Learning Epochs    -> {self.config['learning_epochs']:>6} \n")
-                    f.write(f"Mini Batches       -> {self.config['mini_batches']:>6} \n")
-                    f.write(f"Discount Factor    -> {self.config['discount_factor']:>6} \n")
-                    f.write(f"Lambda             -> {self.config['lambda']:>6} \n")
-                    f.write(f"Learning Rate      -> {self.config['learning_rate']:>6} \n")
-                    f.write(f"Entropy Loss Scale -> {self.config['entropy_loss_scale']:>6} \n")
-                print(f"Source code for PPOconfig saved to {ppo_config_file_path}")
-            except Exception as e:
-                print(f"Failed to save source code for PPOconfig: {e}")
-
-            try:
-                rewards_cfg_source = inspect.getsource(RewardsCfg)
-                with open(rewards_cfg_file_path, 'w') as f:
-                    f.write("####### SEQUENTIAL TRAINING ####### \n\n")
-                    f.write(rewards_cfg_source)
-                print(f"Source code for RewardsCfg saved to {rewards_cfg_file_path}")
-            except Exception as e:
-                print(f"Failed to save source code for RewardsCfg: {e}")
-
-            try:
-                observations_cfg_source = inspect.getsource(ObservationsCfg.PolicyCfg)
-                with open(observations_cfg_file_path, 'w') as f:
-                    f.write("####### SEQUENTIAL TRAINING ####### \n\n")
-                    f.write(observations_cfg_source)
-                print(f"Source code for ObservationsCfg.PolicyCfg saved to {observations_cfg_file_path}")
-            except Exception as e:
-                print(f"Failed to save source code for ObservationsCfg.PolicyCfg: {e}")
-
         except Exception as e:
             print(f"An error occurred while setting up the experiment directory: {e}")
+        return directory
+
+    def train(self, timesteps=20000, headless=False, mode="sequential"):
+        cfg_trainer = {"timesteps": timesteps, "headless": headless}
+        trainer_cls = SequentialTrainer if mode == "sequential" else ParallelTrainer
+        trainer = trainer_cls(cfg=cfg_trainer, env=self.env, agents=self.agent)
+        
+        directory = self._setup_experiment_directory(mode)
+        self._save_source_code(directory, mode)
+        
         trainer.train()
+
+    ###### TRAINING ######
+    def train_sequential(self, timesteps=20000, headless=False):
+        self.train(timesteps, headless, mode="sequential")
 
     def train_parallel(self, timesteps=20000, headless=False):
-        timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
-        cfg_trainer = {"timesteps": timesteps, "headless": headless}
-        trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
-
-        try:
-            experiment_name = "AlienGo_v4_stoptry"
-            directory = f"/home/rl_sim/RL_Dog/runs/{experiment_name}_{timestamp}"
-            os.makedirs(directory, exist_ok=True)
-
-            # Paths for source code files
-            ppo_config_file_path = os.path.join(directory, "PPO_config.txt")
-            rewards_cfg_file_path = os.path.join(directory, "RewardsCfg_source.txt")
-            observations_cfg_file_path = os.path.join(directory, "ObservationsCfg_source.txt")
-
-            try:
-                with open(ppo_config_file_path, 'w') as f:
-                    f.write("####### PARALLEL TRAINING ####### \n\n")
-                    f.write(f"Rollouts           -> {self.config['rollouts']:>6} \n")
-                    f.write(f"Learning Epochs    -> {self.config['learning_epochs']:>6} \n")
-                    f.write(f"Mini Batches       -> {self.config['mini_batches']:>6} \n")
-                    f.write(f"Discount Factor    -> {self.config['discount_factor']:>6} \n")
-                    f.write(f"Lambda             -> {self.config['lambda']:>6} \n")
-                    f.write(f"Learning Rate      -> {self.config['learning_rate']:>6} \n")
-                    f.write(f"Entropy Loss Scale -> {self.config['entropy_loss_scale']:>6} \n")
-                print(f"Source code for PPOconfig saved to {ppo_config_file_path}")
-            except Exception as e:
-                print(f"Failed to save source code for PPOconfig: {e}")
-            
-            try:
-                rewards_cfg_source = inspect.getsource(RewardsCfg)
-                with open(rewards_cfg_file_path, 'w') as f:
-                    f.write("####### PARALLEL TRAINING ####### \n\n")
-                    f.write(rewards_cfg_source)
-                print(f"Source code for RewardsCfg saved to {rewards_cfg_file_path}")
-            except Exception as e:
-                print(f"Failed to save source code for RewardsCfg: {e}")
-
-            try:
-                observations_cfg_source = inspect.getsource(ObservationsCfg.PolicyCfg)
-                with open(observations_cfg_file_path, 'w') as f:
-                    f.write("####### PARALLEL TRAINING ####### \n\n")
-                    f.write(observations_cfg_source)
-                print(f"Source code for ObservationsCfg.PolicyCfg saved to {observations_cfg_file_path}")
-            except Exception as e:
-                print(f"Failed to save source code for ObservationsCfg.PolicyCfg: {e}")
-
-        except Exception as e:
-            print(f"An error occurred while setting up the experiment directory: {e}")
-        trainer.train()
-
-    ########### EVALUAION ###########
+        self.train(timesteps, headless, mode="parallel")
+    
+    ###### EVALUATION ######
     def trainer_seq_eval(self, path: str, timesteps=20000, headless=False):
-        cfg_trainer= {"timesteps": timesteps, "headless": headless}
+        cfg_trainer = {"timesteps": timesteps, "headless": headless}
         trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
         trainer.eval()
 
     def trainer_par_eval(self, path: str, timesteps=20000, headless=False):
-        cfg_trainer= {"timesteps": timesteps, "headless": headless}
+        cfg_trainer = {"timesteps": timesteps, "headless": headless}
         trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
         trainer.eval()
-    
-
 
 #########################################################################################
 
 
-# just to have a look about the values, this is ignored by the code since its after 
-PPO_DEFAULT_CONFIG = {
+# just to have a look about the values, this is ignored by the code
+PPO_DEFAULT_CONFIG_insight = {
     "rollouts": 16,                 # number of rollouts before updating
     "learning_epochs": 8,           # number of learning epochs during each update
     "mini_batches": 2,              # number of mini batches during each learning epoch

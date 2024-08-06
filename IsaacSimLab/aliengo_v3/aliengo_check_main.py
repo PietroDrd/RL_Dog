@@ -68,15 +68,9 @@ MODE = 1
 def main():
     device="cuda" if torch.cuda.is_available() else "cpu"
 
-    if not MODE:    # FULL SENSORS (IDEAL config)
-        from aliengo_env import AliengoEnvCfg
-        env_cfg = AliengoEnvCfg()
-        env_cfg.scene.num_envs = args_cli.num_envs
-    elif MODE:     # REAL SENSORS (REAL config)
-        from aliengo_env_real import AliengoEnvCfg
-        env_cfg = AliengoEnvCfg()
-        env_cfg.scene.num_envs = args_cli.num_envs
-    
+    from aliengo_env import AliengoEnvCfg
+    env_cfg = AliengoEnvCfg()
+    env_cfg.scene.num_envs = args_cli.num_envs
 
     env = ManagerBasedRLEnv(cfg=env_cfg)
     print(Fore.GREEN + '[INFO-AlienGo] Env Created' + Style.RESET_ALL)
@@ -86,8 +80,7 @@ def main():
     policy_path = "/home/rl_sim/RL_Dog/runs/AlienGo_v3_stoptry_31_07_IMU_81%stable/checkpoints/best_agent.pt"
     policy = torch.jit.load(policy_path).to(env.device).eval()
 
-    # simulate physics
-    start_time = time.time()
+    print(Fore.GREEN + '[INFO-AlienGo] Policy Loaded' + Style.RESET_ALL)
     count = 0
     cnt_limit = 1000    # Set the sim reset time !!
     obs, _ = env.reset()
@@ -96,11 +89,11 @@ def main():
             # reset
             if count % cnt_limit == 0:               
                 obs, _ = env.reset()
-                #count = 0          #if uncommented it will loop forever
+                count = 0          #if uncommented it will loop forever
                 print("-" * 80)
                 print("[INFO]: Resetting environment...")
             
-            action = policy         # Here the trained policy!
+            action = policy     # should be policy(obs) or sort of 
             obs, _ = env.step(action)
             count += 1
             if count == 8*cnt_limit:
@@ -150,14 +143,6 @@ def cmd_vel_cb(msg, num_robot):
     y = msg.linear.y
     z = msg.angular.z
     aliengo_env_real.base_command[num_robot] = [x, y, z]
-
-def add_cmd_sub(num_envs):
-    node_test = rclpy.create_node('position_velocity_publisher')
-    for i in range(num_envs):
-        node_test.create_subscription(Twist, f'robot{i}/cmd_vel', lambda msg: cmd_vel_cb(msg, i), 10)
-    # Spin in a separate thread
-    thread = threading.Thread(target=rclpy.spin, args=(node_test, ), daemon=True)
-    thread.start()
 
 def specify_cmd_for_robots(numv_envs):
     base_cmd = []

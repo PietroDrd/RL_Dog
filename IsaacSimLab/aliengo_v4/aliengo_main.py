@@ -94,19 +94,16 @@ def main():
             env = gym.wrappers.RecordVideo(env, **video_kwargs)
     except Exception as e:
         print(Fore.RED + f'[ALIENGO-VIDEO-ERROR] {e}' + Style.RESET_ALL)
+        env = ManagerBasedRLEnv(cfg=env_cfg)
         pass
 
     #env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
     print(Fore.GREEN + '[ALIENGO-INFO] Start training' + Style.RESET_ALL)
 
-    if TRAIN:
-        agent.train_sequential(timesteps=25000, headless=HEADLESS)
-        #agent.train_parallel(timesteps=25000, headless=HEADLESS)
-    else:
-        path = "runs/AlienGo_v3_stoptry_31_07_IMU_81%stable/checkpoints/best_agent.pt"
-        agent.trainer_seq_eval(path)
-        #agent.trainer_par_eval(path)
+    agent.train_sequential(timesteps=25000, headless=HEADLESS)
+    #agent.train_parallel(timesteps=25000, headless=HEADLESS)
+
     env.close()
 
 if __name__ == "__main__":
