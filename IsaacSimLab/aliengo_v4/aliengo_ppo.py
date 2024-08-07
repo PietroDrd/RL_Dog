@@ -47,7 +47,7 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
         reduction: The reduction method specifies how to aggregate the log probability densities when computing the total log probability.
         """
 
-        print(f"[AlienGo - PPO] Observation Space: {self.num_observations}, Action Space: {self.num_actions}")
+        print(Fore.BLUE + f"[ALIENGO-PPO] Observation Space: {self.num_observations}, Action Space: {self.num_actions}" + Style.RESET_ALL)
         self.net = nn.Sequential(nn.Linear(self.num_observations, 256), # activ fcns were ELU
                                  nn.ELU(),
                                  nn.Linear(256, 256),
@@ -92,6 +92,7 @@ class PPO_v1:
         self.num_envs = env.num_envs
         self.agent = self._create_agent()
 
+    ###### AGENT ######
     def _create_agent(self):
         model_nn_ = {
             "policy": Shared(self.env.observation_space, self.env.action_space, self.device),
@@ -101,7 +102,7 @@ class PPO_v1:
         mem_size = 24 if self.num_envs > 1028 else 32
         memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
         
-        self.config.update({
+        self.config={
             "rollouts": mem_size,           # 24 if many envs, 32 if few ones
             "learning_epochs": 6,           # no more than 12
             "mini_batches": 4,              # min(mem_size * batch_dim / 48, 2)   # 48Gb VRAM of the RTX A6000
@@ -116,7 +117,7 @@ class PPO_v1:
             "value_preprocessor": RunningStandardScaler,
             "value_preprocessor_kwargs": {"size": 1, "device": self.device},
             "experiment": {"directory": "/home/rl_sim/RL_Dog/runs"}
-        })
+        }
 
         base_name = "AlienGo_v4_stoptry"
         timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
@@ -133,6 +134,36 @@ class PPO_v1:
         )
         return agent
 
+    ###### TRAINING ######
+    def train_sequential(self, timesteps=20000, headless=False):
+        self.mytrain(timesteps, headless, mode="sequential")
+
+    def train_parallel(self, timesteps=20000, headless=False):
+        self.mytrain(timesteps, headless, mode="parallel")
+    
+    ###### EVALUATION ######
+    def trainer_seq_eval(self, path: str, timesteps=20000, headless=False):
+        self.agent.load(path)
+        cfg_trainer = {"timesteps": timesteps, "headless": headless}
+        trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
+        trainer.eval()
+
+    def trainer_par_eval(self, path: str, timesteps=20000, headless=False):
+        self.agent.load(path)
+        cfg_trainer = {"timesteps": timesteps, "headless": headless}
+        trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
+        trainer.eval()
+    
+    ############ UTILITIES ############
+    def mytrain(self, timesteps=20000, headless=False, mode="sequential"):
+        cfg_trainer = {"timesteps": timesteps, "headless": headless}
+        trainer_cls = SequentialTrainer if mode == "sequential" else ParallelTrainer
+        trainer = trainer_cls(cfg=cfg_trainer, env=self.env, agents=self.agent)
+        
+        directory = self._setup_experiment_directory(mode)
+        self._save_source_code(directory, mode)
+        trainer.train()
+
     def _save_source_code(self, directory, training_type):
         file_paths = {
             "PPO_config.txt": self._get_ppo_config_content(training_type),
@@ -145,9 +176,9 @@ class PPO_v1:
             try:
                 with open(file_path, 'w') as f:
                     f.write(content)
-                print(f"Source code saved to {file_path}")
+                print(Fore.BLUE + f'[ALIENGO-PPO] Source code saved in {file_path}' + Style.RESET_ALL)
             except Exception as e:
-                print(f"Failed to save source code for {file_name}: {e}")
+                print(Fore.RED + f'[ALIENGO-PPO] {e}' + Style.RESET_ALL)
 
     def _get_ppo_config_content(self, training_type):
         return (
@@ -170,36 +201,9 @@ class PPO_v1:
         try:
             os.makedirs(directory, exist_ok=True)
         except Exception as e:
-            print(f"An error occurred while setting up the experiment directory: {e}")
+            print(Fore.RED + f'[ALIENGO-PPO] {e}' + Style.RESET_ALL)
         return directory
 
-    def train(self, timesteps=20000, headless=False, mode="sequential"):
-        cfg_trainer = {"timesteps": timesteps, "headless": headless}
-        trainer_cls = SequentialTrainer if mode == "sequential" else ParallelTrainer
-        trainer = trainer_cls(cfg=cfg_trainer, env=self.env, agents=self.agent)
-        
-        directory = self._setup_experiment_directory(mode)
-        self._save_source_code(directory, mode)
-        
-        trainer.train()
-
-    ###### TRAINING ######
-    def train_sequential(self, timesteps=20000, headless=False):
-        self.train(timesteps, headless, mode="sequential")
-
-    def train_parallel(self, timesteps=20000, headless=False):
-        self.train(timesteps, headless, mode="parallel")
-    
-    ###### EVALUATION ######
-    def trainer_seq_eval(self, path: str, timesteps=20000, headless=False):
-        cfg_trainer = {"timesteps": timesteps, "headless": headless}
-        trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
-        trainer.eval()
-
-    def trainer_par_eval(self, path: str, timesteps=20000, headless=False):
-        cfg_trainer = {"timesteps": timesteps, "headless": headless}
-        trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
-        trainer.eval()
 
 #########################################################################################
 

@@ -55,17 +55,7 @@ import datetime
 import gymnasium as gym
 from colorama import Fore, Style
 
-import tensorboard
-
-"""
-cmd -->     tensorboard --logdir = /home/rl_sim/RL_Dog/runs    (SERVER)
-            or
-            tensorboard --logdir = /home/rluser/RL_Dog/runs       (DELL)
-
-            http://localhost:6006
-"""
-
-HEADLESS = True
+HEADLESS = False
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -103,7 +93,8 @@ def main():
             print_dict(video_kwargs, nesting=4)
             env = gym.wrappers.RecordVideo(env, **video_kwargs)
         else:
-            env = ManagerBasedRLEnv(cfg=env_cfg)
+            #env = ManagerBasedRLEnv(cfg=env_cfg)
+            env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
     except Exception as e:
         print(Fore.RED + f'[ALIENGO-VIDEO-ERROR] {e}' + Style.RESET_ALL)
         env = ManagerBasedRLEnv(cfg=env_cfg)
@@ -111,12 +102,11 @@ def main():
 
     #env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
-    path = "/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/best_agent.pt"
-    agent.agent.load(path)
-
+    path = "/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt"
+    agent.agent.load("/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt")
+    #agent = torch.jit.load(path).to(env.device)
     if True:
-
-        print(Fore.GREEN + '[INFO-AlienGo] Policy Loaded' + Style.RESET_ALL)
+        print(Fore.GREEN + '[ALIENGO-INFO] Policy Loaded' + Style.RESET_ALL)
         count = 0
         cnt_limit = 1000    # Set the sim reset time !!
         obs, _ = env.reset()
@@ -127,9 +117,9 @@ def main():
                     obs, _ = env.reset()
                     count = 0          #if uncommented it will loop forever
                     print("-" * 80)
-                    print("[INFO]: Resetting environment...")
+                    print("[ALIENGO-INFO]: Resetting environment...")
                 
-                action = agent.agent(obs)     # TO FIND OUT HOW TO INOUT THE UÌOBSERVATIONS!!!!
+                action = agent.agent.policy.act(obs)     # TO FIND OUT HOW TO INOUT THE UÌOBSERVATIONS!!!!
                 obs, _ = env.step(action)
                 count += 1
                 if count == 8*cnt_limit:

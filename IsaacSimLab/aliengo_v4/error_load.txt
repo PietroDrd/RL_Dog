@@ -1,0 +1,16 @@
+[ALIENGO-PPO] Observation Space: 45, Action Space: 12
+[ALIENGO-PPO] Observation Space: 45, Action Space: 12
+Traceback (most recent call last):
+  File "/home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_simulate.py", line 176, in <module>
+    main()
+  File "/home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_simulate.py", line 106, in main
+    agent.agent.load("/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_mid/checkpoints/agent_25000.pt")
+  File "/home/rl_sim/anaconda3/envs/isaacenv_/lib/python3.10/site-packages/skrl/agents/torch/base.py", line 389, in load
+    module.load_state_dict(data)
+  File "/home/rl_sim/.local/share/ov/pkg/isaac-sim-4.0.0/exts/omni.isaac.ml_archive/pip_prebundle/torch/_compile.py", line 24, in inner
+    return torch._dynamo.disable(fn, recursive)(*args, **kwargs)
+  File "/home/rl_sim/.local/share/ov/pkg/isaac-sim-4.0.0/exts/omni.isaac.ml_archive/pip_prebundle/torch/_dynamo/eval_frame.py", line 489, in _fn
+    return fn(*args, **kwargs)
+  File "/home/rl_sim/.local/share/ov/pkg/isaac-sim-4.0.0/exts/omni.isaac.ml_archive/pip_prebundle/torch/optim/optimizer.py", line 747, in load_state_dict
+    raise ValueError("loaded state dict contains a parameter group "
+ValueError: loaded state dict contains a parameter group that doesn't match the size of optimizer's group
