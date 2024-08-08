@@ -10,6 +10,9 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_main.py --num_envs 512
 
     #IF HEADLESS:
+    conda activate isaacenv_
+    cd
+    cd IsaacLab_
     ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_main.py --num_envs 4096 --headless --enable_cameras
 
 
@@ -26,7 +29,7 @@ parser.add_argument('--walk',           type=int,   default=0,             help=
 parser.add_argument("--task",           type=str,   default="AlienGo-v0",  help="Name of the task.")
 
 #parser.add_argument("--headless",       action="store_true",    default=True,  help="GUI or not GUI.")
-parser.add_argument("--video",          action="store_true",    default=False,  help="Record videos during training.")
+parser.add_argument("--video",          action="store_true",    default=True,  help="Record videos during training.")
 parser.add_argument("--video_length",   type=int,               default=400,    help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int,               default=4000,   help="Interval between video recordings (in steps).")
 #parser.add_argument("--device",         type=str,               default="cpu",  help="cpu or cuda.")
@@ -42,7 +45,7 @@ from omni.isaac.lab.envs        import ManagerBasedRLEnvCfg
 from omni.isaac.lab.utils.dict  import print_dict
 
 from aliengo_env import AliengoEnvCfg
-from aliengo_ppo import PPO_v1
+from aliengo_ppo_OLD import PPO_v1
 
 import os
 import torch
@@ -62,7 +65,7 @@ cmd -->     tensorboard --logdir = /home/rl_sim/RL_Dog/runs    (SERVER)
 # 1 for training, 0 for evaluation 
 
 TRAIN = 1
-HEADLESS = False
+HEADLESS = True
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -98,20 +101,20 @@ def main():
         pass
 
     #env = ManagerBasedRLEnv(cfg=env_cfg)
-    env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
     print(Fore.GREEN + '[ALIENGO-INFO] Start training' + Style.RESET_ALL)
 
     path = "/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt"
 
     if TRAIN:
-        agent.train_sequential(timesteps=12000, headless=HEADLESS)
-        agent.trainer_seq_eval(timesteps=12000, headless=HEADLESS)
-        #agent.train_parallel(timesteps=25000, headless=HEADLESS)
+        agent.train_sequential(timesteps=21000, headless=HEADLESS)
+        #agent.trainer_seq_eval(timesteps=12000, headless=HEADLESS)
+        
+        #agent.train_parallel(timesteps=21000, headless=HEADLESS)
     else:
         from skrl.trainers.torch import SequentialTrainer
         #agent.agent.load("/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt")
-        cfg_trainer = {"timesteps": 20000, "headless": HEADLESS}
+        cfg_trainer = {"timesteps": 21000, "headless": HEADLESS}
         trainer = SequentialTrainer(cfg=cfg_trainer, env=env, agents=torch.load(path))
         trainer.eval()
         

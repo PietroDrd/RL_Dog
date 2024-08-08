@@ -142,7 +142,6 @@ class CommandsCfg:
     )
 
 ### OBSERVATIONS ###
-
 from omni.isaac.lab.assets import Articulation, RigidObject
 def my_body_acc_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Acceleration of the asset_body in the WORLD frame."""
@@ -238,6 +237,27 @@ class EventCfg:
 
 # Available strings: ['base', 'FL_hip', 'FL_thigh', 'FL_calf', 'FR_hip', 'FR_thigh', 'FR_calf', 
 #                             'RL_hip', 'RL_thigh', 'RL_calf', 'RR_hip', 'RR_thigh', 'RR_calf']
+
+import torch
+
+def height_goal(
+    env: ManagerBasedRLEnv, target_height: float, allowance_radius: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Reward asset height if close to its target.
+
+    Note:
+        Currently, it assumes a flat terrain, i.e. the target height is in the world frame.
+    """
+    asset: RigidObject = env.scene[asset_cfg.name]
+    height_diff = asset.data.root_pos_w[:, 2] - target_height
+    rewards = torch.where(
+        torch.abs(height_diff) <= allowance_radius,
+        torch.where(height_diff == 0, torch.tensor(0.99), torch.tensor(0.30)),
+        torch.tensor(0.0)
+    )
+    return rewards
+
+
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
@@ -248,21 +268,26 @@ class RewardsCfg:
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_exp, weight=0.9, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
+    track_height = RewTerm(
+        func=height_goal,
+        weight=0.8,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
+    )
 
     #### BODY PENALITIES
-    base_height_l2 = RewTerm(
-        func=mdp.base_height_l2,
-        weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
-    )
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.7)
-    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.5)
+    # base_height_l2 = RewTerm(
+    #     func=mdp.base_height_l2,
+    #     weight=-0.95,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
+    # )
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.9)
+    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.8)
     
     lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.6)
     ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.4)
     
     #### JOINTS PENALITIES
-    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.9)
+    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.7)
     dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.2)
     #dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
 
