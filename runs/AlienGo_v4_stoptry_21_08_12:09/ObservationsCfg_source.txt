@@ -1,5 +1,3 @@
-####### SEQUENTIAL TRAINING ####### 
-
     @configclass
     class PolicyCfg(ObsGroup):
         """Observations for policy group."""

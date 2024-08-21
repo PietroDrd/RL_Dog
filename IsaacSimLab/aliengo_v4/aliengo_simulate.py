@@ -16,8 +16,9 @@ This script demonstrates the environment for a quadruped robot AlienGo.
 Launch Isaac Sim Simulator first.
 """
 
-from omni.isaac.lab.app import AppLauncher
+HEADLESS = False
 
+from omni.isaac.lab.app import AppLauncher
 import argparse
 parser = argparse.ArgumentParser(description='AlienGo_v1 Environment Configuration')
 parser.add_argument('--num_envs',       type=int,   default=128,            help='Number of environments')
@@ -26,7 +27,7 @@ parser.add_argument('--walk',           type=int,   default=0,             help=
 parser.add_argument("--task",           type=str,   default="AlienGo-v0",  help="Name of the task.")
 
 #parser.add_argument("--headless",       action="store_true",    default=True,  help="GUI or not GUI.")
-parser.add_argument("--video",          action="store_true",    default=False,  help="Record videos during training.")
+parser.add_argument("--video",          action="store_true",    default=HEADLESS,  help="Record videos during training.")
 parser.add_argument("--video_length",   type=int,               default=400,    help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int,               default=4000,   help="Interval between video recordings (in steps).")
 #parser.add_argument("--device",         type=str,               default="cpu",  help="cpu or cuda.")
@@ -54,8 +55,6 @@ import torch
 import datetime
 import gymnasium as gym
 from colorama import Fore, Style
-
-HEADLESS = False
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -105,6 +104,7 @@ def main():
     path = "/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt"
     agent.agent.load("/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt")
     #agent = torch.jit.load(path).to(env.device)
+    
     if True:
         print(Fore.GREEN + '[ALIENGO-INFO] Policy Loaded' + Style.RESET_ALL)
         count = 0
@@ -119,7 +119,7 @@ def main():
                     print("-" * 80)
                     print("[ALIENGO-INFO]: Resetting environment...")
                 
-                action = agent.agent.policy.act(obs)     # TO FIND OUT HOW TO INOUT THE UÌOBSERVATIONS!!!!
+                action = agent.agent.policy.act(obs)     # TO FIND OUT HOW TO INPUT THE OBSERVATIONS!!!!
                 obs, _ = env.step(action)
                 count += 1
                 if count == 8*cnt_limit:

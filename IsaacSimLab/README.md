@@ -3,7 +3,7 @@
 - **`aliengo_v0`** ==> Tried to use OOP style, not working yet! But not entirely wrong
 - **`aliengo_v1`** ==> Works, not OOP style, not usefull for training, just the env is correct
 - **`aliengo_v2`** ==> Basic WALK training
-- **`aliengo_v3`** ==> STOP policy, IDEAL config
+- **`aliengo_v3`** ==> STOP policy, IDEAL config (sensors)
 - **`aliengo_v4`** ==> STOP policy, REAL config 
 
 ## Assets: URDF and USD

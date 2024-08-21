@@ -71,15 +71,9 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
             return self.mean_layer(self._shared_output), self.log_std_parameter, {}
         elif role == "value":
             shared_output = self.net(inputs["states"]) if self._shared_output is None else self._shared_output
-            self._shared_output = None
+            self._shared_output = shared_output # it was "None"
             return self.value_layer(shared_output), {}
         
-
-def get_experiment_name_with_timestamp(base_name):
-    timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
-    experiment_name = f"{base_name}_{timestamp}"
-    
-    return experiment_name
 
 from aliengo_env import RewardsCfg
 from aliengo_env import ObservationsCfg
@@ -94,10 +88,9 @@ class PPO_v1:
 
     ###### AGENT ######
     def _create_agent(self):
-        model_nn_ = {
-            "policy": Shared(self.env.observation_space, self.env.action_space, self.device),
-            "value": Shared(self.env.observation_space, self.env.action_space, self.device)
-        }
+        model_nn_ = {}
+        model_nn_["policy"] = Shared(self.env.observation_space, self.env.action_space, self.device)
+        model_nn_["value"] = model_nn_["policy"]
         
         mem_size = 24 if self.num_envs > 1028 else 32
         memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
@@ -107,8 +100,8 @@ class PPO_v1:
             "learning_epochs": 6,           # no more than 12
             "mini_batches": 4,              # min(mem_size * batch_dim / 48, 2)   # 48Gb VRAM of the RTX A6000
             "lambda": 0.95,                 # GAE, Generalized Advantage Estimation: bias and variance balance
-            "discount_factor": 0.98,        # ~1 Long Term, ~0 Short Term Rewards | Standard: 0.99
-            "entropy_loss_scale": 0.005,    # Entropy Loss: Exploration~1, Eploitation~0 | Standard: [0.0, 0.01]
+            "discount_factor": 0.985,       # ~1 Long Term, ~0 Short Term Rewards | Standard: 0.99
+            "entropy_loss_scale": 0.004,    # Entropy Loss: Exploration~1, Eploitation~0 | Standard: [0.0, 0.006]
             "learning_rate": 5e-4,
             "learning_rate_scheduler": KLAdaptiveRL,
             "learning_rate_scheduler_kwargs": {"kl_threshold": 0.008},
@@ -136,10 +129,12 @@ class PPO_v1:
 
     ###### TRAINING ######
     def train_sequential(self, timesteps=20000, headless=False):
-        self.mytrain(timesteps, headless, mode="sequential")
+        trainer = self.mytrain(timesteps, headless, mode="sequential")
+        trainer.train()
 
     def train_parallel(self, timesteps=20000, headless=False):
-        self.mytrain(timesteps, headless, mode="parallel")
+        trainer = self.mytrain(timesteps, headless, mode="parallel")
+        trainer.train()
     
     ###### EVALUATION ######
     def trainer_seq_eval(self, path: str, timesteps=20000, headless=False):
@@ -157,12 +152,10 @@ class PPO_v1:
     ############ UTILITIES ############
     def mytrain(self, timesteps=20000, headless=False, mode="sequential"):
         cfg_trainer = {"timesteps": timesteps, "headless": headless}
-        trainer_cls = SequentialTrainer if mode == "sequential" else ParallelTrainer
-        trainer = trainer_cls(cfg=cfg_trainer, env=self.env, agents=self.agent)
-        
+        trainer_cls = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent) if mode == "sequential" else ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
         directory = self._setup_experiment_directory(mode)
         self._save_source_code(directory, mode)
-        trainer.train()
+        return trainer_cls
 
     def _save_source_code(self, directory, training_type):
         file_paths = {
@@ -202,11 +195,10 @@ class PPO_v1:
             os.makedirs(directory, exist_ok=True)
         except Exception as e:
             print(Fore.RED + f'[ALIENGO-PPO] {e}' + Style.RESET_ALL)
+
         return directory
 
-
 #########################################################################################
-
 
 # just to have a look about the values, this is ignored by the code
 PPO_DEFAULT_CONFIG_insight = {

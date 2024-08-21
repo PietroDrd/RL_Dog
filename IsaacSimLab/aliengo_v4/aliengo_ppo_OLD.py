@@ -74,13 +74,6 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
             self._shared_output = None
             return self.value_layer(shared_output), {}
         
-
-def get_experiment_name_with_timestamp(base_name):
-    timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
-    experiment_name = f"{base_name}_{timestamp}"
-    
-    return experiment_name
-
 from aliengo_env import RewardsCfg
 from aliengo_env import ObservationsCfg
 
@@ -124,7 +117,6 @@ class PPO_v1:
         self.config["value_preprocessor_kwargs"] = {"size": 1, "device": self.device}
 
         self.config["experiment"]["directory"] = "/home/rl_sim/RL_Dog/runs"
-
         base_name  = "AlienGo_v4_stoptry"
         timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
         experiment_name = f"{base_name}_{timestamp}"

@@ -1,9 +1,6 @@
 """
 This script demonstrates the environment for a quadruped robot AlienGo.
 
-    In this example, we use a locomotion policy to control the robot. The robot is commanded to
-    move forward at a constant velocity. (?????)
-
     conda activate isaacenv_
     cd
     cd IsaacLab_
@@ -19,6 +16,9 @@ This script demonstrates the environment for a quadruped robot AlienGo.
 Launch Isaac Sim Simulator first.
 """
 
+TRAIN = 1
+HEADLESS = True
+
 from omni.isaac.lab.app import AppLauncher
 
 import argparse
@@ -29,7 +29,7 @@ parser.add_argument('--walk',           type=int,   default=0,             help=
 parser.add_argument("--task",           type=str,   default="AlienGo-v0",  help="Name of the task.")
 
 #parser.add_argument("--headless",       action="store_true",    default=True,  help="GUI or not GUI.")
-parser.add_argument("--video",          action="store_true",    default=True,  help="Record videos during training.")
+parser.add_argument("--video",          action="store_true",    default=HEADLESS,  help="Record videos during training.")
 parser.add_argument("--video_length",   type=int,               default=400,    help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int,               default=4000,   help="Interval between video recordings (in steps).")
 #parser.add_argument("--device",         type=str,               default="cpu",  help="cpu or cuda.")
@@ -45,7 +45,7 @@ from omni.isaac.lab.envs        import ManagerBasedRLEnvCfg
 from omni.isaac.lab.utils.dict  import print_dict
 
 from aliengo_env import AliengoEnvCfg
-from aliengo_ppo_OLD import PPO_v1
+from aliengo_ppo import PPO_v1      # use aliengo_ppo_OLD if aliengo_ppo not working
 
 import os
 import torch
@@ -63,9 +63,6 @@ cmd -->     tensorboard --logdir = /home/rl_sim/RL_Dog/runs    (SERVER)
             http://localhost:6006
 """
 # 1 for training, 0 for evaluation 
-
-TRAIN = 1
-HEADLESS = True
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -95,6 +92,8 @@ def main():
             print(Fore.GREEN + "[ALIENGO-INFO] Recording videos during training." + Style.RESET_ALL)
             print_dict(video_kwargs, nesting=4)
             env = gym.wrappers.RecordVideo(env, **video_kwargs)
+        else:
+            env = ManagerBasedRLEnv(cfg=env_cfg)
     except Exception as e:
         print(Fore.RED + f'[ALIENGO-VIDEO-ERROR] {e}' + Style.RESET_ALL)
         env = ManagerBasedRLEnv(cfg=env_cfg)
