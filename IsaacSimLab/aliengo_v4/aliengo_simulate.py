@@ -92,8 +92,8 @@ def main():
             print_dict(video_kwargs, nesting=4)
             env = gym.wrappers.RecordVideo(env, **video_kwargs)
         else:
-            #env = ManagerBasedRLEnv(cfg=env_cfg)
-            env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+            env = ManagerBasedRLEnv(cfg=env_cfg)
+            #env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
     except Exception as e:
         print(Fore.RED + f'[ALIENGO-VIDEO-ERROR] {e}' + Style.RESET_ALL)
         env = ManagerBasedRLEnv(cfg=env_cfg)
@@ -104,7 +104,7 @@ def main():
     path = "/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt"
     agent.agent.load("/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt")
     #agent = torch.jit.load(path).to(env.device)
-    
+
     if True:
         print(Fore.GREEN + '[ALIENGO-INFO] Policy Loaded' + Style.RESET_ALL)
         count = 0

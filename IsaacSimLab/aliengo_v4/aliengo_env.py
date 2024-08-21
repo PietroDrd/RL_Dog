@@ -188,11 +188,11 @@ class ObservationsCfg:
         velocity_commands = ObsTerm(func=constant_commands)
         
         ### Robot State (What we have)
-        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
+        #base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
         imu_like_data = ObsTerm(
             func=imu_acc_b,
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
-            noise=Unoise(n_min=-0.1, n_max=0.1),
+            noise=Unoise(n_min=-0.08, n_max=0.08),
         )
             
         ### Joint state 
@@ -215,9 +215,9 @@ class EventCfg:
     # Reset the robot with initial velocity
     reset_scene = EventTerm(
         func=mdp.reset_root_state_uniform,
-        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.22, 0.12),
+        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.34, 0.12), # it was z(-0.22, 12)
                                "roll": (-0.1, 0.1), "pitch": (-0.1, 0.1),}, #cancel if want it planar
-                "velocity_range": {"x": (0.2, 1.0), "y": (-0.08, 0.08)},}, 
+                "velocity_range": {"x": (-0.4, 1.0), "y": (-0.08, 0.08)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
@@ -244,6 +244,8 @@ def height_goal(
     env: ManagerBasedRLEnv, target_height: float, allowance_radius: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """Reward asset height if close to its target.
+       it gives a bit of reward if the robot is close to the target height.
+       maybe helping it to reach faster the desired height.
 
     Note:
         Currently, it assumes a flat terrain, i.e. the target height is in the world frame.
@@ -280,15 +282,15 @@ class RewardsCfg:
     #     weight=-0.95,
     #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
     # )
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.9)
-    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.8)
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.7)
+    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.9)
     
     lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.6)
     ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.4)
     
     #### JOINTS PENALITIES
     dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.7)
-    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.2)
+    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.25)
     #dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
 
     #action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.01)
