@@ -154,7 +154,7 @@ class ObservationsCfg:
         #velocity_commands = ObsTerm(func=constant_commands)     # optional, is 0 
         
         ### Robot State (What we have)
-        #base_lin_pos = ObsTerm(func=mdp.root_pos_w, noise=Unoise(n_min=-0.01, n_max=0.01))      # [m]
+        base_lin_pos = ObsTerm(func=mdp.root_pos_w, noise=Unoise(n_min=-0.01, n_max=0.01))      # [m]
         base_quat_pos = ObsTerm(func=mdp.root_quat_w, noise=Unoise(n_min=-0.02, n_max=0.02))    # [quaternion]
         base_lin_vel = ObsTerm(func=mdp.root_lin_vel_w, noise=Unoise(n_min=-0.2, n_max=0.2))    # [m/s]
         base_ang_vel = ObsTerm(func=mdp.root_ang_vel_w, noise=Unoise(n_min=-0.1, n_max=0.1))    # [rad/s]
@@ -181,7 +181,7 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.34, 0.15), # it was z(-0.22, 12)
                                "roll": (-0.1, 0.1), "pitch": (-0.1, 0.1),}, #cancel if want it planar
-                "velocity_range": {"x": (-0.4, 1.2), "y": (-0.3, 0.3)},}, 
+                "velocity_range": {"x": (-0.4, 1.0), "y": (-0.2, 0.2)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
@@ -191,21 +191,21 @@ class EventCfg:
     )
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
-        params={"velocity_range": {"x": (-0.7, 0.7), "y": (-0.7, 0.7), "z": (-0.08, 0.08)}},
+        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.08, 0.08)}},
         mode="interval",
         interval_range_s=(0.2,2.0),
     )
-    physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.2, 0.8),
-            "dynamic_friction_range": (0.2, 0.6),
-            "restitution_range": (0.0, 0.0),
-            "num_buckets": 64,
-        },
-    )
+    # physics_material = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+    #         "static_friction_range": (0.2, 0.8),
+    #         "dynamic_friction_range": (0.2, 0.6),
+    #         "restitution_range": (0.0, 0.0),
+    #         "num_buckets": 64,
+    #     },
+    # )
     # random_masses = EventTerm(
     #     func = mdp.randomize_rigid_body_mass,
     #     mode = "startup",
