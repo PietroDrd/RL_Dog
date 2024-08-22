@@ -5,6 +5,7 @@
 - **`aliengo_v2`** ==> Basic WALK training
 - **`aliengo_v3`** ==> STOP policy, IDEAL config (sensors)
 - **`aliengo_v4`** ==> STOP policy, REAL config 
+- **`aliengo_vP`** ==> STOP policy, Full robot STATE config
 
 ## Assets: URDF and USD
 URDF are supported and IsaacLab can work directly with them, however is suggested to use USDs
@@ -29,7 +30,7 @@ URDF are supported and IsaacLab can work directly with them, however is suggeste
     Launch Omniverse-Launcher (app), run IsaacSim: IsaacUtils -> Workflows -> URDF Importer
 
 **NOTE:** you can import directly the USD file in the `unitree.py` located in each subfolder `/aliengo_v*`
-however it is <u>**STRONGLY SUGGESTED**</u> to import the RobotCFG that you can find and modify in you local OMNI directories:
+however it is <u>**STRONGLY SUGGESTED**</u> to import the RobotCFG that you can find and modify in you local `IsaacLab/../omni` directories:
 
 - **DATA** : Where the USD file must be located
     ```

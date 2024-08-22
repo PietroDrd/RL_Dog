@@ -15,7 +15,7 @@ Launch Isaac Sim Simulator first.
 from omni.isaac.lab.app import AppLauncher
 
 import argparse
-parser = argparse.ArgumentParser(description='AlienGo_v1 Environment Configuration')
+parser = argparse.ArgumentParser(description='AlienGo_v3 Environment Configuration')
 parser.add_argument('--num_envs',       type=int,   default=128,            help='Number of environments')
 parser.add_argument('--env_spacing',    type=float, default=2.5,           help='Environment spacing')
 parser.add_argument('--walk',           type=int,   default=0,             help='ask to Walk or not (1,0)')

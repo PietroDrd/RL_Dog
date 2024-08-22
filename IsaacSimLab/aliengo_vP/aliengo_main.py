@@ -4,13 +4,13 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_main.py --num_envs 512
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vP/aliengo_main.py --num_envs 512
 
     #IF HEADLESS:
     conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_v4/aliengo_main.py --num_envs 4096 --headless --enable_cameras
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vP/aliengo_main.py --num_envs 4096 --headless --enable_cameras
 
 
 Launch Isaac Sim Simulator first.
@@ -22,7 +22,7 @@ HEADLESS = True
 from omni.isaac.lab.app import AppLauncher
 
 import argparse
-parser = argparse.ArgumentParser(description='AlienGo_vp Environment Configuration')
+parser = argparse.ArgumentParser(description='AlienGo_vP Environment Configuration')
 parser.add_argument('--num_envs',       type=int,   default=128,            help='Number of environments')
 parser.add_argument('--env_spacing',    type=float, default=2.5,           help='Environment spacing')
 parser.add_argument('--walk',           type=int,   default=0,             help='ask to Walk or not (1,0)')
@@ -81,7 +81,7 @@ def main():
         if args_cli.video:
             env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
             timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
-            log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_{timestamp}/"
+            log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_vp_stoptry_{timestamp}/"
             os.makedirs(log_dir, exist_ok=True)
             video_kwargs = {
                 "video_folder": os.path.join(log_dir, "videos"),
@@ -103,7 +103,7 @@ def main():
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
     print(Fore.GREEN + '[ALIENGO-INFO] Start training' + Style.RESET_ALL)
 
-    path = "/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt"
+    path = "PATH"
 
     if TRAIN:
         agent.train_sequential(timesteps=21000, headless=HEADLESS)
