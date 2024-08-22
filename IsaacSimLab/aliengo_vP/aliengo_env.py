@@ -206,9 +206,16 @@ class EventCfg:
             "num_buckets": 64,
         },
     )
-    random_masses = EventTerm(
-        func = mdp.randomize_rigid_body_mass,
-        mode = "reset",
+    # random_masses = EventTerm(
+    #     func = mdp.randomize_rigid_body_mass,
+    #     mode = "startup",
+    #     params = {
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+    #         "mass_distribution_params": (0.95, 1.05),
+    #         "operation": "scale",
+    #         "distribution": "uniform",
+    #     }
+    # )
 
 
 ### REWARDS ###
@@ -251,7 +258,7 @@ class RewardsCfg:
     # track_height = RewTerm(
     #     func=height_goal,
     #     weight=0.8,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.392, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
     # )
 
     #### BODY PENALITIES
