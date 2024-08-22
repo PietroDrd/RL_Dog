@@ -17,7 +17,7 @@ Launch Isaac Sim Simulator first.
 """
 
 TRAIN = 1
-HEADLESS = True
+HEADLESS = 1
 
 from omni.isaac.lab.app import AppLauncher
 
@@ -81,7 +81,7 @@ def main():
         if args_cli.video:
             env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
             timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
-            log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_vp_stoptry_{timestamp}/"
+            log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_{timestamp}/"
             os.makedirs(log_dir, exist_ok=True)
             video_kwargs = {
                 "video_folder": os.path.join(log_dir, "videos"),

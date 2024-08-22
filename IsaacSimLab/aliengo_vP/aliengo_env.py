@@ -151,18 +151,19 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         ### Command Input (What we requires to do)
-        velocity_commands = ObsTerm(func=constant_commands)     # optional, is 0 
+        #velocity_commands = ObsTerm(func=constant_commands)     # optional, is 0 
         
         ### Robot State (What we have)
-        base_lin_pos = ObsTerm(func=mdp.root_pos_w, noise=Unoise(n_min=-0.01, n_max=0.01))      # [m]
+        #base_lin_pos = ObsTerm(func=mdp.root_pos_w, noise=Unoise(n_min=-0.01, n_max=0.01))      # [m]
+        base_quat_pos = ObsTerm(func=mdp.root_quat_w, noise=Unoise(n_min=-0.02, n_max=0.02))    # [quaternion]
         base_lin_vel = ObsTerm(func=mdp.root_lin_vel_w, noise=Unoise(n_min=-0.2, n_max=0.2))    # [m/s]
         base_ang_vel = ObsTerm(func=mdp.root_ang_vel_w, noise=Unoise(n_min=-0.1, n_max=0.1))    # [rad/s]
             
         ### Joint state 
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.06, n_max=0.06))
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))      # [rad]
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.06, n_max=0.06))      # [rad/s]
 
-        actions   = ObsTerm(func=mdp.last_action)
+        #actions   = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
             self.enable_corruption = True   # IDK
@@ -178,22 +179,36 @@ class EventCfg:
     # Reset the robot with initial velocity
     reset_scene = EventTerm(
         func=mdp.reset_root_state_uniform,
-        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.34, 0.12), # it was z(-0.22, 12)
+        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.34, 0.15), # it was z(-0.22, 12)
                                "roll": (-0.1, 0.1), "pitch": (-0.1, 0.1),}, #cancel if want it planar
-                "velocity_range": {"x": (-0.4, 1.0), "y": (-0.08, 0.08)},}, 
+                "velocity_range": {"x": (-0.4, 1.2), "y": (-0.3, 0.3)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
         func=mdp.reset_joints_by_offset,
-        params={"position_range": (-0.15, 0.15), "velocity_range": (-0.05, 0.05)},
+        params={"position_range": (-0.2, 0.2), "velocity_range": (-0.1, 0.1)},
         mode="reset",
     )
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.05, 0.05)}},
+        params={"velocity_range": {"x": (-0.7, 0.7), "y": (-0.7, 0.7), "z": (-0.08, 0.08)}},
         mode="interval",
         interval_range_s=(0.2,2.0),
     )
+    physics_material = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "static_friction_range": (0.2, 0.8),
+            "dynamic_friction_range": (0.2, 0.6),
+            "restitution_range": (0.0, 0.0),
+            "num_buckets": 64,
+        },
+    )
+    random_masses = EventTerm(
+        func = mdp.randomize_rigid_body_mass,
+        mode = "reset",
 
 
 ### REWARDS ###
@@ -202,7 +217,7 @@ class EventCfg:
 #                             'RL_hip', 'RL_thigh', 'RL_calf', 'RR_hip', 'RR_thigh', 'RR_calf']
 
 import torch
-
+from omni.isaac.lab.assets import Articulation, RigidObject
 def height_goal(
     env: ManagerBasedRLEnv, target_height: float, allowance_radius: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
@@ -233,18 +248,18 @@ class RewardsCfg:
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_exp, weight=0.9, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
-    track_height = RewTerm(
-        func=height_goal,
-        weight=0.8,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
-    )
+    # track_height = RewTerm(
+    #     func=height_goal,
+    #     weight=0.8,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
+    # )
 
     #### BODY PENALITIES
-    # base_height_l2 = RewTerm(
-    #     func=mdp.base_height_l2,
-    #     weight=-0.95,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
-    # )
+    base_height_l2 = RewTerm(
+        func=mdp.base_height_l2,
+        weight=-0.9,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.392}, # "target": 0.35         target not a param of base_pos_z
+    )
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.7)
     body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.9)
     
