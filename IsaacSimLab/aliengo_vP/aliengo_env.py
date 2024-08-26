@@ -163,6 +163,11 @@ class ObservationsCfg:
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))      # [rad]
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.05, n_max=0.05))      # [rad/s]
 
+
+    #Input of the NN
+    #0.3 --> position x, y, z, 
+    
+
         #actions   = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
