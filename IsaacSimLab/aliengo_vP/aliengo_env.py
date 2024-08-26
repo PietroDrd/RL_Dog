@@ -161,7 +161,7 @@ class ObservationsCfg:
             
         ### Joint state 
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))      # [rad]
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.06, n_max=0.06))      # [rad/s]
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.05, n_max=0.05))      # [rad/s]
 
         #actions   = ObsTerm(func=mdp.last_action)
 
@@ -179,21 +179,21 @@ class EventCfg:
     # Reset the robot with initial velocity
     reset_scene = EventTerm(
         func=mdp.reset_root_state_uniform,
-        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.34, 0.15), # it was z(-0.22, 12)
-                               "roll": (-0.1, 0.1), "pitch": (-0.1, 0.1),}, #cancel if want it planar
-                "velocity_range": {"x": (-0.4, 1.0), "y": (-0.2, 0.2)},}, 
+        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.36, 0.18), # it was z(-0.22, 12)
+                               "roll": (-0.15, 0.15), "pitch": (-0.15, 0.15),}, #cancel if want it planar
+                "velocity_range": {"x": (-0.4, 1.1), "y": (-0.4, 0.4)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
         func=mdp.reset_joints_by_offset,
-        params={"position_range": (-0.2, 0.2), "velocity_range": (-0.1, 0.1)},
+        params={"position_range": (-0.25, 0.25), "velocity_range": (-0.2, 0.2)},
         mode="reset",
     )
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.08, 0.08)}},
+        params={"velocity_range": {"x": (-0.6, 0.6), "y": (-0.5, 0.5), "z": (-0.1, 0.1)}},
         mode="interval",
-        interval_range_s=(0.2,2.0),
+        interval_range_s=(0.2,2.2),
     )
     # physics_material = EventTerm(
     #     func=mdp.randomize_rigid_body_material,
@@ -327,7 +327,7 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.sim.physics_material = self.scene.terrain.physics_material
 
         # viewer settings
-        self.viewer.eye = (5.0, 0.5, 2.0)
+        self.viewer.eye = (5.0, 1.0, 2.0)
 
         self.sim.physics_material = self.scene.terrain.physics_material
         if HEIGHT_SCAN:

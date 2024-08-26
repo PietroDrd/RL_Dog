@@ -190,7 +190,7 @@ class EventCfg:
     reset_scene = EventTerm(
         func=mdp.reset_root_state_uniform,
         params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.2, 0.08)}, 
-                "velocity_range": {"x": (0.2, 1.2), "y": (-0.05, 0.05)},}, 
+                "velocity_range": {"x": (-0.2, 1.0), "y": (-0.05, 0.05)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(

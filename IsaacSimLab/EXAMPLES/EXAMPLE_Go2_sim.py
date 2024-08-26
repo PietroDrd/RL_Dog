@@ -153,6 +153,7 @@ def specify_cmd_for_robots(numv_envs):
     for _ in range(numv_envs):
         base_cmd.append([0, 0, 0])
     custom_rl_env.base_command = base_cmd
+
 def run_sim():
     
     # acquire input interface
