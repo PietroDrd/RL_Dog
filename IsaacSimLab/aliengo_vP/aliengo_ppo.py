@@ -138,12 +138,14 @@ class PPO_v1:
     
     ###### EVALUATION ######
     def trainer_seq_eval(self, path: str, timesteps=20000, headless=False):
+        self.agent.init()
         self.agent.load(path)
         cfg_trainer = {"timesteps": timesteps, "headless": headless}
         trainer = SequentialTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)
         trainer.eval()
 
     def trainer_par_eval(self, path: str, timesteps=20000, headless=False):
+        self.agent.init()
         self.agent.load(path)
         cfg_trainer = {"timesteps": timesteps, "headless": headless}
         trainer = ParallelTrainer(cfg=cfg_trainer, env=self.env, agents=self.agent)

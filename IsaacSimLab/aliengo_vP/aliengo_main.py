@@ -103,7 +103,7 @@ def main():
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
     print(Fore.GREEN + '[ALIENGO-INFO] Start training' + Style.RESET_ALL)
 
-    path = "PATH"
+    path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_22_08_FULL_STATE/checkpoints/agent_21000.pt"
 
     if TRAIN:
         agent.train_sequential(timesteps=21000, headless=HEADLESS)

@@ -51,6 +51,8 @@ import carb         #from omni
 import omni.appwindow
 
 import os
+import sys
+import tqdm
 import torch
 import datetime
 import gymnasium as gym
@@ -101,7 +103,8 @@ def main():
 
     #env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
-    path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_22_08_FULL_STATE/agent_21000.pt"
+    agent.agent.init()
+    path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_22_08_FULL_STATE/checkpoints/agent_21000.pt"
     agent.agent.load(path)
     #agent = torch.jit.load(path).to(env.device)
 
@@ -112,6 +115,7 @@ def main():
         obs, _ = env.reset()
         while simulation_app.is_running():
             with torch.inference_mode():
+                #timestep = tqdm.tqdm(range(count, cnt_limit), disable=True, file=sys.stdout)
                 # reset
                 if count % cnt_limit == 0:               
                     obs, _ = env.reset()
@@ -119,8 +123,8 @@ def main():
                     print("-" * 80)
                     print("[ALIENGO-INFO]: Resetting environment...")
                 
-                action = agent.agent.policy.act(obs)     # TO FIND OUT HOW TO INPUT THE OBSERVATIONS!!!!
-                obs, _ = env.step(action)
+                action, _, _ = agent.agent.act(obs, count, cnt_limit)
+                obs, _, _, _, _ = env.step(action)
                 count += 1
                 if count == 8*cnt_limit:
                     break
