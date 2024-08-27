@@ -16,7 +16,9 @@ This script demonstrates the environment for a quadruped robot AlienGo.
 Launch Isaac Sim Simulator first.
 """
 
-HEADLESS = False
+HEADLESS = 0
+SIM = 1
+# if SIM is FALSE --> Evaluation
 
 from omni.isaac.lab.app import AppLauncher
 import argparse
@@ -58,6 +60,16 @@ import datetime
 import gymnasium as gym
 from colorama import Fore, Style
 
+import tensorboard
+
+"""
+cmd -->     tensorboard --logdir=/home/rl_sim/RL_Dog/runs         #(SERVER)
+            or
+            tensorboard --logdir=/home/rluser/RL_Dog/runs         #(DELL)
+
+            http://localhost:6006
+"""
+
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     gym.register(
@@ -78,11 +90,15 @@ def main():
     env_cfg.scene.num_envs = args_cli.num_envs
     env_cfg.viewer.resolution = (640, 480)
 
+    path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_22_08_FULL_STATE/checkpoints/agent_21000.pt"
+    base_dir = os.path.dirname(os.path.dirname(path))
+    new_folder_name = os.path.basename(base_dir) + "_EVAL"
+    path_folder = os.path.join(os.path.dirname(base_dir), new_folder_name)
+
     try:
         if args_cli.video:
             env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
-            timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
-            log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_{timestamp}/videos"
+            log_dir = path_folder
             os.makedirs(log_dir, exist_ok=True)
             video_kwargs = {
                 "video_folder": os.path.join(log_dir, "videos"),
@@ -103,16 +119,20 @@ def main():
 
     #env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
-    agent.agent.init()
-    path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_22_08_FULL_STATE/checkpoints/agent_21000.pt"
-    agent.agent.load(path)
-    #agent = torch.jit.load(path).to(env.device)
 
-    if True:
+    if SIM:
+        agent.agent.init()
+        agent.agent.load(path) #["policy"]
+        #agent = torch.jit.load(path).to(env.device)
+
         print(Fore.GREEN + '[ALIENGO-INFO] Policy Loaded' + Style.RESET_ALL)
         count = 0
         cnt_limit = 1000    # Set the sim reset time !!
         obs, _ = env.reset()
+        flag_1 = 0
+        flag = 0
+
+        print(Fore.GREEN + f'[ALIENGO-INFO] OBS {obs}' + Style.RESET_ALL)
         while simulation_app.is_running():
             with torch.inference_mode():
                 #timestep = tqdm.tqdm(range(count, cnt_limit), disable=True, file=sys.stdout)
@@ -123,13 +143,21 @@ def main():
                     print("-" * 80)
                     print("[ALIENGO-INFO]: Resetting environment...")
                 
-                action, _, _ = agent.agent.act(obs, count, cnt_limit)
-                obs, _, _, _, _ = env.step(action)
+                action, _, _ = agent.agent.act(obs['policy'], count, cnt_limit)
+                if flag_1==0:
+                    print(Fore.GREEN + f'[ALIENGO-INFO] done 1st act' + Style.RESET_ALL)
+                    flag_1 = 1
+
+                obs, _, _, _ = env.step(action)
+                if flag==0:
+                    print(Fore.GREEN + f'[ALIENGO-INFO] done 1st step' + Style.RESET_ALL)
+                    flag = 1
+
                 count += 1
                 if count == 8*cnt_limit:
                     break
     else:
-        agent.trainer_seq_eval(path)
+        agent.trainer_seq_eval(path, timesteps=21000)
         #agent.trainer_par_eval(path)
     env.close()
 

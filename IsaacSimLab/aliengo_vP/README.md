@@ -13,6 +13,14 @@ torch.save(policy_nn, "/home/rluser/RL_Dog/models/policy_nn_NAME.pt")
 ```
 
 ### Observation Space: 37
+
+NOTE:  JOINT's Position and Velocities are <u>RELATIVE</u> to the default ones
+```
+# e.g: Jpos_1 = Jpos1_Actual - Jpos1_Default
+
+asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
+```
+
 - **`Pose`**: x, y, z 
 - **`Quat`**: w, x, y, z
 - **`Lvel`**: vx, vy, vz

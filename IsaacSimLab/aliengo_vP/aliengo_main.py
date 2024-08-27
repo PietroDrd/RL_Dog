@@ -30,8 +30,8 @@ parser.add_argument("--task",           type=str,   default="AlienGo-v0",  help=
 
 #parser.add_argument("--headless",       action="store_true",    default=True,  help="GUI or not GUI.")
 parser.add_argument("--video",          action="store_true",    default=HEADLESS,  help="Record videos during training.")
-parser.add_argument("--video_length",   type=int,               default=10,    help="Length of the recorded video (in steps).")
-parser.add_argument("--video_interval", type=int,               default=4,   help="Interval between video recordings (in steps).")
+parser.add_argument("--video_length",   type=int,               default=500,    help="Length of the recorded video (in steps).")
+parser.add_argument("--video_interval", type=int,               default=4000,   help="Interval between video recordings (in steps).")
 #parser.add_argument("--device",         type=str,               default="cpu",  help="cpu or cuda.")
 #args = parser.parse_args()
 
@@ -56,9 +56,9 @@ from colorama import Fore, Style
 import tensorboard
 
 """
-cmd -->     tensorboard --logdir = /home/rl_sim/RL_Dog/runs    (SERVER)
+cmd -->     tensorboard --logdir=/home/rl_sim/RL_Dog/runs    (SERVER)
             or
-            tensorboard --logdir = /home/rluser/RL_Dog/runs       (DELL)
+            tensorboard --logdir=/home/rluser/RL_Dog/runs       (DELL)
 
             http://localhost:6006
 """
