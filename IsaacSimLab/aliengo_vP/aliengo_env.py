@@ -142,6 +142,19 @@ class CommandsCfg:
     )
 
 ### OBSERVATIONS ###
+
+# FOR DEBUG ONLY  (SUBSTITUTE: mdp.joint_pos_rel)
+def joint_pos_rel_print(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """The joint positions of the asset w.r.t. the default joint positions.
+
+    Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their positions returned.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    print("[ALIENGO-DEBUG] IDS:", asset.data.joint_names)
+
+    return asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
+
 @configclass
 class ObservationsCfg:
     """Observation specifications for the MDP."""

@@ -30,8 +30,8 @@ parser.add_argument("--task",           type=str,   default="AlienGo-v0",  help=
 
 #parser.add_argument("--headless",       action="store_true",    default=True,  help="GUI or not GUI.")
 parser.add_argument("--video",          action="store_true",    default=HEADLESS,  help="Record videos during training.")
-parser.add_argument("--video_length",   type=int,               default=500,    help="Length of the recorded video (in steps).")
-parser.add_argument("--video_interval", type=int,               default=4000,   help="Interval between video recordings (in steps).")
+parser.add_argument("--video_length",   type=int,               default=10,    help="Length of the recorded video (in steps).")
+parser.add_argument("--video_interval", type=int,               default=4,   help="Interval between video recordings (in steps).")
 #parser.add_argument("--device",         type=str,               default="cpu",  help="cpu or cuda.")
 #args = parser.parse_args()
 
@@ -99,14 +99,13 @@ def main():
         env = ManagerBasedRLEnv(cfg=env_cfg)
         pass
 
-    #env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
     print(Fore.GREEN + '[ALIENGO-INFO] Start training' + Style.RESET_ALL)
 
     path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_22_08_FULL_STATE/checkpoints/agent_21000.pt"
 
     if TRAIN:
-        agent.train_sequential(timesteps=21000, headless=HEADLESS)
+        agent.train_sequential(timesteps=100, headless=HEADLESS)
         #agent.trainer_seq_eval(timesteps=12000, headless=HEADLESS)
         
         #agent.train_parallel(timesteps=21000, headless=HEADLESS)
