@@ -146,7 +146,8 @@ class CommandsCfg:
 # FOR DEBUG ONLY  (SUBSTITUTE: mdp.joint_pos_rel)
 def joint_pos_rel_print(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     asset: Articulation = env.scene[asset_cfg.name]
-    print("[ALIENGO-DEBUG] IDS:", asset.data.joint_names)
+    #print("[ALIENGO-DEBUG] IDS:", asset.data.joint_names)
+    print(asset.data.default_joint_vel[:, asset_cfg.joint_ids])
     return asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
 
 @configclass
@@ -167,7 +168,8 @@ class ObservationsCfg:
         base_ang_vel = ObsTerm(func=mdp.root_ang_vel_w, noise=Unoise(n_min=-0.1, n_max=0.1))    # [rad/s]
             
         ### Joint state 
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))      # [rad]
+        print (" [ALIENGO-DEBUG] ######################################## ")
+        joint_pos = ObsTerm(func=joint_pos_rel_print, noise=Unoise(n_min=-0.01, n_max=0.01))      # [rad]
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.05, n_max=0.05))      # [rad/s]
 
 

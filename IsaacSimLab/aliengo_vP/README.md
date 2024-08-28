@@ -29,5 +29,11 @@ asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, a
  - **`Jvel`**: 'FL_hip_joint', 'FR_hip_joint', 'RL_hip_joint', 'RR_hip_joint', 'FL_thigh_joint', 'FR_thigh_joint', 'RL_thigh_joint', 'RR_thigh_joint', 'FL_calf_joint', 'FR_calf_joint', 'RL_calf_joint', 'RR_calf_joint'
 
 
+DEFAULT JOINT POSITION:
+tensor([[ 0.1000, -0.1000,  0.1000, -0.1000,  0.8000,  0.8000,  1.0000,  1.0000, -1.5000, -1.5000, -1.5000, -1.5000]], device='cuda:0')
+
+DEFAULT VELOCITIES: 
+tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]], device='cuda:0')
+
 ### Action Space: 12
 - **`Jpos`**
