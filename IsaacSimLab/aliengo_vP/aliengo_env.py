@@ -113,7 +113,7 @@ class BaseSceneCfg(InteractiveSceneCfg):
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.8, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=1.0, use_default_offset=True)
 
 
 ### COMANDS ###
@@ -164,20 +164,12 @@ class ObservationsCfg:
         ### Robot State (What we have)
         base_lin_pos = ObsTerm(func=mdp.root_pos_w, noise=Unoise(n_min=-0.01, n_max=0.01))      # [m]
         base_quat_pos = ObsTerm(func=mdp.root_quat_w, noise=Unoise(n_min=-0.02, n_max=0.02))    # [quaternion]
-        base_lin_vel = ObsTerm(func=mdp.root_lin_vel_w, noise=Unoise(n_min=-0.2, n_max=0.2))    # [m/s]
-        base_ang_vel = ObsTerm(func=mdp.root_ang_vel_w, noise=Unoise(n_min=-0.1, n_max=0.1))    # [rad/s]
+        base_lin_vel = ObsTerm(func=mdp.root_lin_vel_w, noise=Unoise(n_min=-0.1, n_max=0.1))    # [m/s]
+        base_ang_vel = ObsTerm(func=mdp.root_ang_vel_w, noise=Unoise(n_min=-0.08, n_max=0.08))    # [rad/s]
             
         ### Joint state 
-        print (" [ALIENGO-DEBUG] ######################################## ")
-        joint_pos = ObsTerm(func=joint_pos_rel_print, noise=Unoise(n_min=-0.01, n_max=0.01))      # [rad]
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.05, n_max=0.05))      # [rad/s]
-
-
-    #Input of the NN
-    #0.3 --> position x, y, z, 
-    
-
-        #actions   = ObsTerm(func=mdp.last_action)
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.02, n_max=0.02))      # [rad]
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.04, n_max=0.04))      # [rad/s]
 
         def __post_init__(self):
             self.enable_corruption = True   # IDK
@@ -193,9 +185,9 @@ class EventCfg:
     # Reset the robot with initial velocity
     reset_scene = EventTerm(
         func=mdp.reset_root_state_uniform,
-        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.36, 0.18), # it was z(-0.22, 12)
+        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.34, 0.18), # it was z(-0.22, 12)
                                "roll": (-0.15, 0.15), "pitch": (-0.15, 0.15),}, #cancel if want it planar
-                "velocity_range": {"x": (-0.4, 1.1), "y": (-0.4, 0.4)},}, 
+                "velocity_range": {"x": (-0.4, 1.0), "y": (-0.4, 0.4)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
@@ -205,7 +197,7 @@ class EventCfg:
     )
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
-        params={"velocity_range": {"x": (-0.6, 0.6), "y": (-0.5, 0.5), "z": (-0.1, 0.1)}},
+        params={"velocity_range": {"x": (-0.6, 0.6), "y": (-0.5, 0.5), "z": (-0.15, 0.1)}},
         mode="interval",
         interval_range_s=(0.2,2.2),
     )
@@ -258,6 +250,14 @@ def height_goal(
     )
     return rewards
 
+def desired_pose_style_l1(env, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize joint positions that deviate from the chosen one."""
+    asset: Articulation = env.scene[asset_cfg.name]
+
+                       # 'FL_hi', 'FR_hi', 'RL_hi', 'RR_hi', 'FL_th', 'FR_th', 'RL_th', 'RR_th', 'FL_cl', 'FR_cl', 'RL_cl', 'RR_cl'
+    desired_joints_pos = torch.tensor([0.1000, -0.1000,  0.1000, -0.1000,  0.8000,  0.8000,  1.0000,  1.0000, -1.4500, -1.4500, -1.4500, -1.4500], device=env.device)
+    angle = asset.data.joint_pos[:, asset_cfg.joint_ids] - desired_joints_pos[asset_cfg.joint_ids]
+    return torch.sum(torch.abs(angle), dim=1)
 
 @configclass
 class RewardsCfg:
@@ -271,28 +271,27 @@ class RewardsCfg:
     )
     # track_height = RewTerm(
     #     func=height_goal,
-    #     weight=0.8,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.392, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
+    #     weight=0.5,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40, "allowance_radius": 0.03}, # "target": 0.35         target not a param of base_pos_z
     # )
 
     #### BODY PENALITIES
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=-0.9,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.392}, # "target": 0.35         target not a param of base_pos_z
+        weight=-0.8,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
     )
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.7)
     body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.9)
     
     lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.6)
     ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.4)
-    
-    #### JOINTS PENALITIES
-    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.7)
-    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.25)
-    #dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
 
-    #action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.01)
+    #### JOINTS PENALITIES
+    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.9)
+    #dof_pos_dev     = RewTerm(func=desired_pose_style_l1, weight=-0.25) # -0.25 strong
+    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.4) 
+    dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.02)
 
     undesired_thigh_contacts = RewTerm(
         func=mdp.undesired_contacts,
@@ -321,7 +320,7 @@ class CurriculumCfg:
 class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_managers(), reset(), step(), seed(), close(), 
     """Configuration for the locomotion velocity-tracking environment."""
 
-    scene : BaseSceneCfg            = BaseSceneCfg(num_envs=128, env_spacing=2.5)
+    scene : BaseSceneCfg            = BaseSceneCfg(num_envs=1028, env_spacing=2.5)
     actions : ActionsCfg            = ActionsCfg()
     commands : CommandsCfg          = CommandsCfg() 
     observations : ObservationsCfg  = ObservationsCfg()

@@ -29,10 +29,22 @@ asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, a
  - **`Jvel`**: 'FL_hip_joint', 'FR_hip_joint', 'RL_hip_joint', 'RR_hip_joint', 'FL_thigh_joint', 'FR_thigh_joint', 'RL_thigh_joint', 'RR_thigh_joint', 'FL_calf_joint', 'FR_calf_joint', 'RL_calf_joint', 'RR_calf_joint'
 
 
-DEFAULT JOINT POSITION:
+### DEFAULT JOINT POSITION:
 tensor([[ 0.1000, -0.1000,  0.1000, -0.1000,  0.8000,  0.8000,  1.0000,  1.0000, -1.5000, -1.5000, -1.5000, -1.5000]], device='cuda:0')
 
-DEFAULT VELOCITIES: 
+<font color="red">`Remark`: If setting the deafult joint positions to ALL 0.0, this Error is returned:</font>
+```
+ValueError: The following joints have default positions out of the limits: 
+    - 'FL_calf_joint': 0.000 not in [-2.775, -0.646]
+    - 'FR_calf_joint': 0.000 not in [-2.775, -0.646]
+    - 'RL_calf_joint': 0.000 not in [-2.775, -0.646]
+    - 'RR_calf_joint': 0.000 not in [-2.775, -0.646]
+
+```
+
+or we modify the limits (Dangerous, if for real robot it can break), or we put the calf_default_pose close to the lower limit!
+
+### DEFAULT VELOCITIES: 
 tensor([[0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]], device='cuda:0')
 
 ### Action Space: 12

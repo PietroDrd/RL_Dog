@@ -23,15 +23,15 @@ from omni.isaac.lab.app import AppLauncher
 
 import argparse
 parser = argparse.ArgumentParser(description='AlienGo_vP Environment Configuration')
-parser.add_argument('--num_envs',       type=int,   default=128,            help='Number of environments')
+parser.add_argument('--num_envs',       type=int,   default=1028,            help='Number of environments')
 parser.add_argument('--env_spacing',    type=float, default=2.5,           help='Environment spacing')
 parser.add_argument('--walk',           type=int,   default=0,             help='ask to Walk or not (1,0)')
 parser.add_argument("--task",           type=str,   default="AlienGo-v0",  help="Name of the task.")
 
 #parser.add_argument("--headless",       action="store_true",    default=True,  help="GUI or not GUI.")
 parser.add_argument("--video",          action="store_true",    default=HEADLESS,  help="Record videos during training.")
-parser.add_argument("--video_length",   type=int,               default=10,    help="Length of the recorded video (in steps).")
-parser.add_argument("--video_interval", type=int,               default=4,   help="Interval between video recordings (in steps).")
+parser.add_argument("--video_length",   type=int,               default=500,    help="Length of the recorded video (in steps).")
+parser.add_argument("--video_interval", type=int,               default=4000,   help="Interval between video recordings (in steps).")
 #parser.add_argument("--device",         type=str,               default="cpu",  help="cpu or cuda.")
 #args = parser.parse_args()
 
@@ -62,8 +62,6 @@ cmd -->     tensorboard --logdir=/home/rl_sim/RL_Dog/runs    (SERVER)
 
             http://localhost:6006
 """
-# 1 for training, 0 for evaluation 
-
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -105,7 +103,7 @@ def main():
     path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_22_08_FULL_STATE/checkpoints/agent_21000.pt"
 
     if TRAIN:
-        agent.train_sequential(timesteps=100, headless=HEADLESS)
+        agent.train_sequential(timesteps=21000, headless=HEADLESS)
         #agent.trainer_seq_eval(timesteps=12000, headless=HEADLESS)
         
         #agent.train_parallel(timesteps=21000, headless=HEADLESS)
