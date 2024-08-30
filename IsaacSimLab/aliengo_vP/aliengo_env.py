@@ -290,7 +290,7 @@ class RewardsCfg:
     #### JOINTS PENALITIES
     dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.9)
     #dof_pos_dev     = RewTerm(func=desired_pose_style_l1, weight=-0.25) # -0.25 strong
-    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.4) 
+    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.45) 
     dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.02)
 
     undesired_thigh_contacts = RewTerm(

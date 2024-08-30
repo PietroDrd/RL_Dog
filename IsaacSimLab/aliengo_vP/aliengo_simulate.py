@@ -12,12 +12,14 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     #IF HEADLESS:
     ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vP/aliengo_simulate.py --num_envs 1 --headless --enable_cameras
 
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vP/aliengo_simulate.py --num_envs 4096 --headless --enable_cameras
+
 
 Launch Isaac Sim Simulator first.
 """
 
-HEADLESS = 0
-SIM = 1
+HEADLESS = 1
+SIM = 0
 # if SIM is FALSE --> Evaluation
 
 from omni.isaac.lab.app import AppLauncher
@@ -90,10 +92,15 @@ def main():
     env_cfg.scene.num_envs = args_cli.num_envs
     env_cfg.viewer.resolution = (640, 480)
 
-    path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_22_08_FULL_STATE/checkpoints/agent_21000.pt"
+    path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_29_08_FULL_STATE_v2/checkpoints/best_agent.pt"
     base_dir = os.path.dirname(os.path.dirname(path))
-    new_folder_name = os.path.basename(base_dir) + "_EVAL"
-    path_folder = os.path.join(os.path.dirname(base_dir), new_folder_name)
+
+    if SIM:
+        new_folder_name = os.path.basename(base_dir) + "_SIM"
+        path_folder = os.path.join(os.path.dirname(base_dir), new_folder_name)
+    else:
+        new_folder_name = os.path.basename(base_dir) + "_EVAL"
+        path_folder = os.path.join(os.path.dirname(base_dir), new_folder_name)
 
     try:
         if args_cli.video:
@@ -117,7 +124,6 @@ def main():
         env = ManagerBasedRLEnv(cfg=env_cfg)
         pass
 
-    #env = ManagerBasedRLEnv(cfg=env_cfg)
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
 
     if SIM:

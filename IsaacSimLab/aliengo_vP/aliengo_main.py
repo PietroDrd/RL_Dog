@@ -16,7 +16,6 @@ This script demonstrates the environment for a quadruped robot AlienGo.
 Launch Isaac Sim Simulator first.
 """
 
-TRAIN = 1
 HEADLESS = 1
 
 from omni.isaac.lab.app import AppLauncher
@@ -100,22 +99,8 @@ def main():
     agent = PPO_v1(env=env, device=device, verbose=1) # SKRL_env_WRAPPER inside
     print(Fore.GREEN + '[ALIENGO-INFO] Start training' + Style.RESET_ALL)
 
-    path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_22_08_FULL_STATE/checkpoints/agent_21000.pt"
-
-    if TRAIN:
-        agent.train_sequential(timesteps=21000, headless=HEADLESS)
-        #agent.trainer_seq_eval(timesteps=12000, headless=HEADLESS)
-        
-        #agent.train_parallel(timesteps=21000, headless=HEADLESS)
-    else:
-        from skrl.trainers.torch import SequentialTrainer
-        #agent.agent.load("/home/rl_sim/RL_Dog/runs/AlienGo_v4_stoptry_06_08_11:59/checkpoints/agent_25000.pt")
-        cfg_trainer = {"timesteps": 21000, "headless": HEADLESS}
-        trainer = SequentialTrainer(cfg=cfg_trainer, env=env, agents=torch.load(path))
-        trainer.eval()
-        
-        #agent.agent.trainer_seq_eval(timesteps=2500, headless=HEADLESS)
-        #agent.trainer_par_eval(timesteps=2500, headless=HEADLESS)
+    agent.train_sequential(timesteps=21000, headless=HEADLESS)
+    #agent.train_parallel(timesteps=21000, headless=HEADLESS)
 
     env.close()
 
