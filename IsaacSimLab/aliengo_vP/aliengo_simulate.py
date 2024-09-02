@@ -139,7 +139,6 @@ def main():
 
         while simulation_app.is_running():
             with torch.inference_mode():
-                #timestep = tqdm.tqdm(range(count, cnt_limit), disable=True, file=sys.stdout)
                 # reset
                 if count % cnt_limit == 0:               
                     obs, _ = env.reset()
@@ -156,7 +155,7 @@ def main():
                 #                         0.0000,  0.0000,  0.0000,  0.0000,  0.0000], device="cuda:0")
                 #print(Fore.GREEN + f'[ALIENGO-INFO] OBS {obs}' + Style.RESET_ALL)
                 
-                action, _, _ = agent.agent.act(obs, count, cnt_limit) # obs['policy]
+                action, _, _ = agent.agent.act(obs["policy"], count, cnt_limit) # obs['policy]
                 if flag_1==0:
                     print(Fore.GREEN + f'[ALIENGO-INFO] done 1st act' + Style.RESET_ALL)
                     print("ActionShape: ", action.shape)
@@ -171,7 +170,8 @@ def main():
                 count += 1
                 if count == 8*cnt_limit:
                     break
-    else:
+
+    else:   # EVALUATION
         agent.trainer_seq_eval(path, timesteps=21000)
         #agent.trainer_par_eval(path)
     env.close()
