@@ -19,7 +19,7 @@ class Backup(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
-PATH = '/home/ruser/RL_Dog/models/FULL_STATE__NN_v2.pt'
+PATH = '/home/rl_sim/RL_Dog/models/FULL_STATE__NN_v2.pt'
 dict = torch.load(PATH, map_location=torch.device('cuda'), weights_only=True)
 
 # Change dict keys
@@ -37,7 +37,7 @@ for k, v in dict.items():
         name = new_keys[new_dict] # remove `module.`
         new_state_dict[name] = v
         print('v.shape',v.shape)
-        print('v',v)
+        #print('v',v)
         new_dict += 1
 
 joint_def = np.array([  0.1000, -0.1000,  0.1000, -0.1000,
@@ -52,7 +52,7 @@ th_hip = 0.
 th_thigh = 0.8
 th_calf = -1.5
 
-
+# my input
 data_order = np.array([0.,    0.,  0.39275, 1.0, 0.0, 0.0, 0.0, # trunk pos
                        0, 0, 0, 0, 0, 0,                    # trunk vel
                        th_hip,   -th_hip,   th_hip,   -th_hip, # hip pos             
@@ -60,7 +60,7 @@ data_order = np.array([0.,    0.,  0.39275, 1.0, 0.0, 0.0, 0.0, # trunk pos
                        th_calf,  th_calf,  th_calf,  th_calf, # calf pos
                        0,0,0, 0,0,0, 0,0,0, 0,0,0]) # vels
 
-print(data_order)
+print("MY INPUT TO NN:\n",data_order)
 data_order[13:25] = data_order[13:25] - joint_def
 a = torch.from_numpy(data_order)
 a = a.to(torch.float32)
@@ -71,3 +71,5 @@ joint_def_tensor = torch.from_numpy(joint_def)
 joint_def_tensor = joint_def_tensor.to(torch.float32)
 pos_backup_2 = res + joint_def_tensor
 print('network_output + joint_default',pos_backup_2)
+
+print('DIFFERENCE WRT DEF_J_pos', pos_backup_2.to(torch.float32) -torch.from_numpy(joint_def))
