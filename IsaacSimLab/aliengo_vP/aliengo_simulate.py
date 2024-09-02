@@ -19,7 +19,7 @@ Launch Isaac Sim Simulator first.
 """
 
 HEADLESS = 1
-SIM = 0
+SIM = 1
 # if SIM is FALSE --> Evaluation
 
 from omni.isaac.lab.app import AppLauncher
@@ -118,7 +118,6 @@ def main():
             env = gym.wrappers.RecordVideo(env, **video_kwargs)
         else:
             env = ManagerBasedRLEnv(cfg=env_cfg)
-            #env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
     except Exception as e:
         print(Fore.RED + f'[ALIENGO-VIDEO-ERROR] {e}' + Style.RESET_ALL)
         env = ManagerBasedRLEnv(cfg=env_cfg)
@@ -138,20 +137,30 @@ def main():
         flag_1 = 0
         flag = 0
 
-        print(Fore.GREEN + f'[ALIENGO-INFO] OBS {obs}' + Style.RESET_ALL)
         while simulation_app.is_running():
             with torch.inference_mode():
                 #timestep = tqdm.tqdm(range(count, cnt_limit), disable=True, file=sys.stdout)
                 # reset
                 if count % cnt_limit == 0:               
                     obs, _ = env.reset()
+
                     count = 0          #if uncommented it will loop forever
                     print("-" * 80)
                     print("[ALIENGO-INFO]: Resetting environment...")
+
+                ### TO TEST FAST THE POLICY
+                # obs = torch.tensor([ 0.0000,  0.0000,  0.3927,  1.0000,  0.0000,  0.0000,  0.0000,  0.0000,
+                #                         0.0000,  00000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,
+                #                         0.0000,  0.7500,  0.7500,  0.7500,  0.7500, -1.5000, -1.5000, -1.5000,
+                #                         -1.5000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,
+                #                         0.0000,  0.0000,  0.0000,  0.0000,  0.0000], device="cuda:0")
+                #print(Fore.GREEN + f'[ALIENGO-INFO] OBS {obs}' + Style.RESET_ALL)
                 
-                action, _, _ = agent.agent.act(obs['policy'], count, cnt_limit)
+                action, _, _ = agent.agent.act(obs, count, cnt_limit) # obs['policy]
                 if flag_1==0:
                     print(Fore.GREEN + f'[ALIENGO-INFO] done 1st act' + Style.RESET_ALL)
+                    print("ActionShape: ", action.shape)
+                    print(action)
                     flag_1 = 1
 
                 obs, _, _, _ = env.step(action)
