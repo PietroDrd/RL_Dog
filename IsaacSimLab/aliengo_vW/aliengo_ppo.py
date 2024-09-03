@@ -112,7 +112,7 @@ class PPO_v1:
             "experiment": {"directory": "/home/rl_sim/RL_Dog/runs"}
         }
 
-        base_name = "AlienGo_v4_stoptry"
+        base_name = "AlienGo_vW_walktry"
         timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
         experiment_name = f"{base_name}_{timestamp}"
         self.config["experiment"]["experiment_name"] = experiment_name
@@ -188,7 +188,7 @@ class PPO_v1:
         )
 
     def _setup_experiment_directory(self, training_type):
-        experiment_name = "AlienGo_v4_stoptry"
+        experiment_name = "AlienGo_vW_walktry"
         timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
         directory = f"/home/rl_sim/RL_Dog/runs/{experiment_name}_{timestamp}"
         try:

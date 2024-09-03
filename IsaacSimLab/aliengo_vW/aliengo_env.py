@@ -49,7 +49,10 @@ DEBUG_IMU = False
 ROUGH_TERRAIN = 0
 HEIGHT_SCAN = 0
 
-base_command = {}  # for keyboard inputs
+# ENV duration, min>4s, good>= 20s
+DURATION = 22.0
+
+base_command = []  # for keyboard inputs
 
 ######### SCENE #########
 terrain_type = "generator" if ROUGH_TERRAIN else "plane"
@@ -113,15 +116,16 @@ class BaseSceneCfg(InteractiveSceneCfg):
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=0.8, use_default_offset=True)
+    joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=[".*"], scale=1.0, use_default_offset=True)
 
 
 ### COMANDS ###
-
-def constant_commands(env: ManagerBasedEnv) -> torch.Tensor:
-    """Generated command"""
-    
-    tensor_lst =  torch.tensor([0.0, 0.0, 0.0], device=env.device).repeat(env.num_envs, 1)
+def constant_commands(env: ManagerBasedRLEnvCfg) -> torch.Tensor:   # FOR SIMULATION ONLY
+    global base_command
+    """The generated command from the command generator."""
+    tensor_lst = torch.tensor([0, 0, 0], device=env.device).repeat(env.num_envs, 1)
+    for i in range(env.num_envs):
+        tensor_lst[i] = torch.tensor(base_command[i], device=env.device)
     return tensor_lst
 
 
@@ -138,7 +142,7 @@ class CommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 0.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(0.0, 0.0), heading=(0, 0)
+            lin_vel_x=(-0.8, 0.8), lin_vel_y=(-0.4, 0.4), ang_vel_z=(-0.2, 0.2), heading=(0, 0)
         ),
     )
 
@@ -186,10 +190,10 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         ### Command Input (What we requires to do)
-        velocity_commands = ObsTerm(func=constant_commands)
+        # velocity_commands = ObsTerm(func=constant_commands)    #this will be for the simulation
+        velocity_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
         
         ### Robot State (What we have)
-        #base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.2, n_max=0.2))
         imu_like_data = ObsTerm(
             func=imu_acc_b,
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
@@ -200,6 +204,7 @@ class ObservationsCfg:
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.06, n_max=0.06))
 
+        # Last action
         actions   = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
@@ -218,7 +223,7 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.34, 0.12), # it was z(-0.22, 12)
                                "roll": (-0.1, 0.1), "pitch": (-0.1, 0.1),}, #cancel if want it planar
-                "velocity_range": {"x": (-0.4, 1.0), "y": (-0.08, 0.08)},}, 
+                "velocity_range": {"x": (-0.2, 0.3), "y": (-0.08, 0.08)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
@@ -228,9 +233,9 @@ class EventCfg:
     )
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "z": (-0.05, 0.05)}},
+        params={"velocity_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "z": (-0.05, 0.05)}},
         mode="interval",
-        interval_range_s=(0.2,2.0),
+        interval_range_s=(float(DURATION/2),DURATION-2),
     )
 
 
@@ -271,30 +276,42 @@ class RewardsCfg:
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_exp, weight=0.9, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
-    track_height = RewTerm(
-        func=height_goal,
-        weight=0.8,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
-    )
+    # track_height = RewTerm(
+    #     func=height_goal,
+    #     weight=0.8,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
+    # )
 
     #### BODY PENALITIES
-    # base_height_l2 = RewTerm(
-    #     func=mdp.base_height_l2,
-    #     weight=-0.95,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42}, # "target": 0.35         target not a param of base_pos_z
-    # )
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.7)
-    body_lin_acc_l2 = RewTerm(func=mdp.body_lin_acc_l2,  weight=-0.9)
-    
-    lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.6)
-    ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.4)
+    base_height_l2 = RewTerm(
+        func=mdp.base_height_l2,
+        weight=-0.8,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
+    )
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.1)
+
+    lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.05)
+    ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.05)
     
     #### JOINTS PENALITIES
-    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.7)
-    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.25)
-    #dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.001)
+    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,    weight=-0.4)
+    #dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.0001)
 
-    #action_rate_l2  = RewTerm(func=mdp.action_rate_l2,   weight=-0.01)
+    dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,      weight=-0.00001)
+    dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2,  weight=-1.0e-5)
+    dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,      weight=-2.5e-6)
+
+    action_rate_l2  = RewTerm(func=mdp.action_rate_l2,    weight=-0.01)
+
+    feet_air_time = RewTerm(
+        func=mdp.feet_air_time,
+        weight=0.125,
+        params={
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),
+            "command_name": "base_velocity",
+            "threshold": 0.5,
+        },
+    )
 
     undesired_thigh_contacts = RewTerm(
         func=mdp.undesired_contacts,
@@ -306,11 +323,45 @@ class RewardsCfg:
         weight=-1.0,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 1.0},
     )
-    
+
+def random_limit(
+    env: ManagerBasedRLEnv, limit_angle: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Terminate when the asset's orientation is too far from the desired orientation limits.
+
+    This is computed by checking the angle between the projected gravity vector and the z-axis.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    val = torch.rand(1)
+    if  val > 0.5:
+        return torch.acos(-asset.data.projected_gravity_b[:, 2]).abs() > limit_angle
+    else:
+        return False
+
+
+
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    bad_orientation = DoneTerm(
+        func=random_limit,
+        params={"limit_angle": 1.48}, # whole robot | radiants: 1.5 ~ 90° Deg
+    )
+
+
+    ### Too strong/angry ###
+    # base_contact = DoneTerm(
+    #     func=mdp.illegal_contact,
+    #     params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names="base"), "threshold": 10.0},
+    # )
+
+    # upside_down = DoneTerm(
+    #     func = mdp.bad_orientation,
+    #     params={"limit_angle": 1.48}, # whole robot | radiants: 1.5 ~ 90° Deg
+    # )
+
     
 @configclass
 class CurriculumCfg:
@@ -339,7 +390,7 @@ class AliengoEnvCfg(ManagerBasedRLEnvCfg):   #MBEnv --> _init_, _del_, load_mana
         self.decimation = 4  # env decimation -> 50 Hz control
         self.sim.dt = 0.005  # simulation timestep -> 200 Hz physics
         self.sim.render_interval = self.decimation
-        self.episode_length_s = 3.0
+        self.episode_length_s = DURATION
         self.sim.physics_material = self.scene.terrain.physics_material
 
         # viewer settings
