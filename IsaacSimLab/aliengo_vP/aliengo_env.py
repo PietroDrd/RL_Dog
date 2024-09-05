@@ -168,7 +168,7 @@ class ObservationsCfg:
         base_ang_vel = ObsTerm(func=mdp.root_ang_vel_w, noise=Unoise(n_min=-0.08, n_max=0.08))    # [rad/s]
             
         ### Joint state 
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.02, n_max=0.02))      # [rad]
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.08, n_max=0.08))      # [rad]
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.04, n_max=0.04))      # [rad/s]
 
         def __post_init__(self):
@@ -185,14 +185,14 @@ class EventCfg:
     # Reset the robot with initial velocity
     reset_scene = EventTerm(
         func=mdp.reset_root_state_uniform,
-        params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.34, 0.18), # it was z(-0.22, 12)
+        params={"pose_range": {"x": (-0.1, 0.1), "z": (-0.32, 0.18), # it was z(-0.22, 12)
                                "roll": (-0.15, 0.15), "pitch": (-0.15, 0.15),}, #cancel if want it planar
                 "velocity_range": {"x": (-0.4, 1.0), "y": (-0.4, 0.4)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
         func=mdp.reset_joints_by_offset,
-        params={"position_range": (-0.25, 0.25), "velocity_range": (-0.2, 0.2)},
+        params={"position_range": (-0.40, 0.40), "velocity_range": (-0.4, 0.4)},
         mode="reset",
     )
     push_robot = EventTerm(
