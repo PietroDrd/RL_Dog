@@ -13,7 +13,6 @@ class Backup(nn.Module):
             nn.Linear(256, 128),
             nn.ELU(),
             nn.Linear(128, 12),
-            nn.ELU()
         )
     
     def forward(self, x):
@@ -49,13 +48,13 @@ model.load_state_dict(new_state_dict)
 
 vel = np.zeros(18)
 th_hip = 0.
-th_thigh = 0.8
+th_thigh = 0.75
 th_calf = -1.5
 
 # my input
 data_order = np.array([0.,    0.,  0.39275, 1.0, 0.0, 0.0, 0.0, # trunk pos
                        0, 0, 0, 0, 0, 0,                    # trunk vel
-                       th_hip,   -th_hip,   th_hip,   -th_hip, # hip pos             
+                       th_hip,   th_hip,   th_hip,   th_hip, # hip pos             
                        th_thigh, th_thigh, th_thigh, th_thigh, # thigh pos
                        th_calf,  th_calf,  th_calf,  th_calf, # calf pos
                        0,0,0, 0,0,0, 0,0,0, 0,0,0]) # vels

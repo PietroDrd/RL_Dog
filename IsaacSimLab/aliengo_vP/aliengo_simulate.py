@@ -10,6 +10,9 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vP/aliengo_simulate.py --num_envs 1
 
     #IF HEADLESS:
+    conda activate isaacenv_
+    cd
+    cd IsaacLab_
     ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vP/aliengo_simulate.py --num_envs 1 --headless --enable_cameras
 
     ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vP/aliengo_simulate.py --num_envs 4096 --headless --enable_cameras
@@ -149,17 +152,24 @@ def main():
 
                 ### TO TEST FAST THE POLICY
                 # obs = torch.tensor([ 0.0000,  0.0000,  0.3927,  1.0000,  0.0000,  0.0000,  0.0000,  0.0000,
-                #                         0.0000,  00000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,
-                #                         0.0000,  0.7500,  0.7500,  0.7500,  0.7500, -1.5000, -1.5000, -1.5000,
-                #                         -1.5000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,
-                #                         0.0000,  0.0000,  0.0000,  0.0000,  0.0000], device="cuda:0")
-                #print(Fore.GREEN + f'[ALIENGO-INFO] OBS {obs}' + Style.RESET_ALL)
+                #                      0.0000,  00000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,
+                #                      0.0000,  0.7500,  0.7500,  0.7500,  0.7500, -1.5000, -1.5000, -1.5000,
+                #                      -1.5000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,
+                #                      0.0000,  0.0000,  0.0000,  0.0000,  0.0000], device="cuda:0")
+
+                # OBS - J_DEF_POS
+                obs = torch.tensor([ 0.0000,  0.0000,  0.3927,  1.0000,  0.0000,  0.0000,  0.0000,  0.0000,
+                                     0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  -0.1000, 0.1000, -0.1000,
+                                     0.1000,  -0.0500,  -0.0500, -0.2500, -0.2500, 0.0000,  0.0000,  0.0000,
+                                     0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,
+                                     0.0000,  0.0000,  0.0000,  0.0000,  0.0000], device="cuda:0")
+                print(Fore.GREEN + f'[ALIENGO-INFO] OBS {obs}' + Style.RESET_ALL)
                 
-                action, _, _ = agent.agent.act(obs["policy"], count, cnt_limit) # obs['policy]
+                action, _, _ = agent.agent.act(obs, count, cnt_limit) # obs['policy] if not the provided custom one, OBS instead 
                 if flag_1==0:
                     print(Fore.GREEN + f'[ALIENGO-INFO] done 1st act' + Style.RESET_ALL)
                     print("ActionShape: ", action.shape)
-                    print(action)
+                    print("[ALIENGO-INFO] ACT ",action)
                     flag_1 = 1
 
                 obs, _, _, _ = env.step(action)

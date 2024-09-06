@@ -128,7 +128,7 @@ def constant_commands(env: ManagerBasedRLEnvCfg) -> torch.Tensor:   # FOR SIMULA
         tensor_lst[i] = torch.tensor(base_command[i], device=env.device)
     return tensor_lst
 
-
+ISOLATE = 0 
 @configclass
 class CommandsCfg:
     """Command terms for the MDP."""   # ASKING TO HAVE 0 Velocity
@@ -142,7 +142,7 @@ class CommandsCfg:
         heading_control_stiffness=0.5,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-0.8, 0.8), lin_vel_y=(-0.4, 0.4), ang_vel_z=(-0.2, 0.2), heading=(0, 0)
+            lin_vel_x=(0.8, 0.8), lin_vel_y=(-0.4*ISOLATE, 0.4*ISOLATE), ang_vel_z=(-0.2*ISOLATE, 0.2*ISOLATE), heading=(0, 0)
         ),
     )
 
@@ -199,10 +199,12 @@ class ObservationsCfg:
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
             noise=Unoise(n_min=-0.08, n_max=0.08),
         )
-            
+        base_height = ObsTerm(func=mdp.base_pos_z, noise=Unoise(n_min=-0.01, n_max=0.01)) # ideal but still feasible with cameras/lidars, TOF
+        #body_vel = ObsTerm(func=mdp.body_vel_rel, noise=Unoise(n_min=-0.05, n_max=0.05))    # IDEAL
+        
         ### Joint state 
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.06, n_max=0.06))
+        joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.05, n_max=0.05))
 
         # Last action
         actions   = ObsTerm(func=mdp.last_action)
@@ -260,7 +262,7 @@ def height_goal(
     height_diff = asset.data.root_pos_w[:, 2] - target_height
     rewards = torch.where(
         torch.abs(height_diff) <= allowance_radius,
-        torch.where(height_diff == 0, torch.tensor(0.99), torch.tensor(0.30)),
+        torch.where(height_diff == 0, torch.tensor(1), torch.tensor(0.4)),
         torch.tensor(0.0)
     )
     return rewards
@@ -276,19 +278,19 @@ class RewardsCfg:
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_exp, weight=0.9, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
-    # track_height = RewTerm(
-    #     func=height_goal,
-    #     weight=0.8,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.42, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
-    # )
+    track_height = RewTerm(
+        func=height_goal,
+        weight=0.4,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
+    )
 
     #### BODY PENALITIES
-    base_height_l2 = RewTerm(
-        func=mdp.base_height_l2,
-        weight=-0.8,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
-    )
-    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.1)
+    # base_height_l2 = RewTerm(
+    #     func=mdp.base_height_l2,
+    #     weight=-0.5,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
+    # )
+    flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.08)
 
     lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.05)
     ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.05)
@@ -305,7 +307,7 @@ class RewardsCfg:
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.125,
+        weight=0.15,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),
             "command_name": "base_velocity",
