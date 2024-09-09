@@ -18,15 +18,21 @@ class Backup(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
-PATH = '/home/rl_sim/RL_Dog/models/FULL_STATE__NN_v2.pt'
-dict = torch.load(PATH, map_location=torch.device('cuda'), weights_only=True)
+PATH = '/home/rl_sim/RL_Dog/models/FULL_STATE__NN_v3.pt'
+dict = torch.load(PATH, map_location=torch.device('cuda'), weights_only=False)
 
 # Change dict keys
 new_keys = ["layers.0.weight", "layers.0.bias", "layers.2.weight", "layers.2.bias",
             "layers.4.weight", "layers.4.bias", "layers.6.weight", "layers.6.bias"]
-old_keys = ["net.0.weight", "net.0.bias",
-            "net.2.weight", "net.2.bias", "net.4.weight", "net.4.bias",
+
+
+old_keys = ["l1.weight", "l1.bias",
+            "l3.weight", "l3.bias", "l5.weight", "l5.bias",
             "mean_layer.weight", "mean_layer.bias"] 
+
+# old_keys = ["net.0.weight", "net.0.bias",
+#             "net.2.weight", "net.2.bias", "net.4.weight", "net.4.bias",
+#             "mean_layer.weight", "mean_layer.bias"] 
 
 from collections import OrderedDict
 new_state_dict = OrderedDict()
@@ -60,7 +66,7 @@ data_order = np.array([0.,    0.,  0.39275, 1.0, 0.0, 0.0, 0.0, # trunk pos
                        0,0,0, 0,0,0, 0,0,0, 0,0,0]) # vels
 
 print("MY INPUT TO NN:\n",data_order)
-data_order[13:25] = data_order[13:25] - joint_def
+data_order[13:25] = data_order[13:25]# - joint_def
 a = torch.from_numpy(data_order)
 a = a.to(torch.float32)
 print('joint_desired - joint_default',a)

@@ -187,7 +187,7 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         params={"pose_range": {"x": (-0.1, 0.1), "z": (-0.32, 0.18), # it was z(-0.22, 12)
                                "roll": (-0.15, 0.15), "pitch": (-0.15, 0.15),}, #cancel if want it planar
-                "velocity_range": {"x": (-0.4, 1.0), "y": (-0.4, 0.4)},}, 
+                "velocity_range": {"x": (-0.4, 0.9), "y": (-0.4, 0.4)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
@@ -199,7 +199,7 @@ class EventCfg:
         func=mdp.push_by_setting_velocity,
         params={"velocity_range": {"x": (-0.6, 0.6), "y": (-0.5, 0.5), "z": (-0.15, 0.1)}},
         mode="interval",
-        interval_range_s=(0.2,2.2),
+        interval_range_s=(0.3,2.2),
     )
     # physics_material = EventTerm(
     #     func=mdp.randomize_rigid_body_material,

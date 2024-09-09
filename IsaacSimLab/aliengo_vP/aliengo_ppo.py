@@ -84,17 +84,17 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
             self.o5 = self.l5(self.o4)
             self.o6 = self.l6(self.o5)
             self.o7 = self.mean_layer(self.o6)
-            self.something = self.net(inputs["states"])   #original
-            print(Fore.GREEN + f"[ALIENGO-PPO] O1: {self.o1}" + Style.RESET_ALL)
-            print(Fore.GREEN + f"[ALIENGO-PPO] O2: {self.o2}" + Style.RESET_ALL)
-            print(Fore.GREEN + f"[ALIENGO-PPO] O3: {self.o3}" + Style.RESET_ALL)
-            print(Fore.GREEN + f"[ALIENGO-PPO] O4: {self.o4}" + Style.RESET_ALL)
-            print(Fore.GREEN + f"[ALIENGO-PPO] O5: {self.o5}" + Style.RESET_ALL)
-            print(Fore.GREEN + f"[ALIENGO-PPO] O6: {self.o6}" + Style.RESET_ALL)
-            print(Fore.GREEN + f"[ALIENGO-PPO] O7=mean: {self.o7}" + Style.RESET_ALL)
-            print(Fore.GREEN + f"[ALIENGO-PPO] NET: {self.something}" + Style.RESET_ALL)
-            print(Fore.GREEN + f"[ALIENGO-PPO] LOG_STD: {self.log_std_parameter}" + Style.RESET_ALL)
-            self._shared_output = self.o6
+            self._shared_output = self.net(inputs["states"])   #original  --> shared_output
+            # print(Fore.GREEN + f"[ALIENGO-PPO] l1 = torch.{self.l1}" + Style.RESET_ALL)
+            # print(Fore.GREEN + f"[ALIENGO-PPO] o1 = torch.{self.o1}" + Style.RESET_ALL)
+            # print(Fore.GREEN + f"[ALIENGO-PPO] o2 = torch.{self.o2}" + Style.RESET_ALL)
+            # print(Fore.GREEN + f"[ALIENGO-PPO] o3 = torch.{self.o3}" + Style.RESET_ALL)
+            # print(Fore.GREEN + f"[ALIENGO-PPO] o4 = torch.{self.o4}" + Style.RESET_ALL)
+            # print(Fore.GREEN + f"[ALIENGO-PPO] o5 = torch.{self.o5}" + Style.RESET_ALL)
+            # print(Fore.GREEN + f"[ALIENGO-PPO] o6 = torch.{self.o6}" + Style.RESET_ALL)
+            # print(Fore.GREEN + f"[ALIENGO-PPO] net = torch.{self._shared_output}" + Style.RESET_ALL)
+            # print(Fore.GREEN + f"[ALIENGO-PPO] LOG_STD = torch.{self.log_std_parameter}" + Style.RESET_ALL)
+            # print(Fore.GREEN + f"[ALIENGO-PPO] mean_layer = torch.{self.o7}" + Style.RESET_ALL)
             return self.mean_layer(self._shared_output), self.log_std_parameter, {}                 #original
         elif role == "value":
             shared_output = self.net(inputs["states"]) if self._shared_output is None else self._shared_output
@@ -136,7 +136,7 @@ class PPO_v1:
             "state_preprocessor_kwargs": {"size": self.env.observation_space, "device": self.device},
             "value_preprocessor": RunningStandardScaler,
             "value_preprocessor_kwargs": {"size": 1, "device": self.device},
-            "experiment": {"directory": "/home/rl_sim/RL_Dog/runs"}
+            "experiment": {"directory": "/home/rl_sim/RL_Dog/runs", "store_separately": True}
         }
 
         base_name = "AlienGo_vP_stoptry"

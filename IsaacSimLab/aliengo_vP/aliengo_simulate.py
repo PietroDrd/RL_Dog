@@ -95,7 +95,7 @@ def main():
     env_cfg.scene.num_envs = args_cli.num_envs
     env_cfg.viewer.resolution = (640, 480)
 
-    path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_29_08_FULL_STATE_v2/checkpoints/best_agent.pt"
+    #path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_29_08_FULL_STATE_v2/checkpoints/best_agent.pt"
     path = '/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_09_09_11:32/checkpoints/best_agent.pt'
     base_dir = os.path.dirname(os.path.dirname(path))
 
@@ -166,11 +166,12 @@ def main():
                 #                      0.0000,  0.0000,  0.0000,  0.0000,  0.0000], device="cuda:0")
                 print(Fore.GREEN + f'[ALIENGO-INFO] OBS {obs}' + Style.RESET_ALL)
                 
-                action, _, _ = agent.agent.act(obs, count, cnt_limit) # obs['policy] if not the provided custom one, OBS instead 
+                action, _, outputs = agent.agent.act(obs, count, cnt_limit) # obs['policy] if not the provided custom one, OBS instead 
                 if flag_1==0:
                     print(Fore.GREEN + f'[ALIENGO-INFO] done 1st act' + Style.RESET_ALL)
                     print("ActionShape: ", action.shape)
                     print("[ALIENGO-INFO] ACT ",action)
+                    print("[ALIENGO-INFO] OUTPUTS ",outputs)
                     flag_1 = 1
 
                 obs, _, _, _ = env.step(action)
