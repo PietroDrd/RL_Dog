@@ -55,21 +55,15 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
         #                          nn.Linear(256, 128),
         #                          nn.ELU())
         
-        l1 = nn.Linear(self.num_observations, 256)
-        l2 = nn.ELU()
-        l3 = nn.Linear(256, 256)
-        l4 = nn.ELU()
-        l5 = nn.Linear(256, 128)
-        l6 = nn.ELU()
-        net = nn.Sequential(l1, l2, l3, l4, l5, l6)
-        self.l1 = l1
-        self.l2 = l2
-        self.l3 = l3
-        self.l4 = l4
-        self.l5 = l5
-        self.l6 = l6
-        self.net = net
 
+        # USE THIS TO PRINT LAYER BY LAYER , NEED TO TRAIN 
+        self.l1 = nn.Linear(self.num_observations, 256)
+        self.l2 = nn.ELU()
+        self.l3 = nn.Linear(256, 256)
+        self.l4 = nn.ELU()
+        self.l5 = nn.Linear(256, 128)
+        self.l6 = nn.ELU()
+        self.net = nn.Sequential(self.l1, self.l2, self.l3, self.l4, self.l5, self.l6)
 
         self.mean_layer = nn.Linear(128, self.num_actions)       # num_actions: 12
         self.log_std_parameter = nn.Parameter(torch.zeros(self.num_actions))
@@ -99,6 +93,7 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
             print(Fore.GREEN + f"[ALIENGO-PPO] O6: {self.o6}" + Style.RESET_ALL)
             print(Fore.GREEN + f"[ALIENGO-PPO] O7=mean: {self.o7}" + Style.RESET_ALL)
             print(Fore.GREEN + f"[ALIENGO-PPO] NET: {self.something}" + Style.RESET_ALL)
+            print(Fore.GREEN + f"[ALIENGO-PPO] LOG_STD: {self.log_std_parameter}" + Style.RESET_ALL)
             self._shared_output = self.o6
             return self.mean_layer(self._shared_output), self.log_std_parameter, {}                 #original
         elif role == "value":
