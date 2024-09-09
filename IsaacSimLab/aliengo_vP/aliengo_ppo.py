@@ -48,27 +48,59 @@ class Shared(GaussianMixin, DeterministicMixin, Model):
         """
 
         print(Fore.BLUE + f"[ALIENGO-PPO] Observation Space: {self.num_observations}, Action Space: {self.num_actions}" + Style.RESET_ALL)
-        self.net = nn.Sequential(nn.Linear(self.num_observations, 256), # activ fcns were ELU
-                                 nn.ELU(),
-                                 nn.Linear(256, 256),
-                                 nn.ELU(),
-                                 nn.Linear(256, 128),
-                                 nn.ELU())
+        # self.net = nn.Sequential(nn.Linear(self.num_observations, 256), # activ fcns were ELU
+        #                          nn.ELU(),
+        #                          nn.Linear(256, 256),
+        #                          nn.ELU(),
+        #                          nn.Linear(256, 128),
+        #                          nn.ELU())
+        
+        l1 = nn.Linear(self.num_observations, 256)
+        l2 = nn.ELU()
+        l3 = nn.Linear(256, 256)
+        l4 = nn.ELU()
+        l5 = nn.Linear(256, 128)
+        l6 = nn.ELU()
+        net = nn.Sequential(l1, l2, l3, l4, l5, l6)
+        self.l1 = l1
+        self.l2 = l2
+        self.l3 = l3
+        self.l4 = l4
+        self.l5 = l5
+        self.l6 = l6
+        self.net = net
+
 
         self.mean_layer = nn.Linear(128, self.num_actions)       # num_actions: 12
         self.log_std_parameter = nn.Parameter(torch.zeros(self.num_actions))
         self.value_layer = nn.Linear(128, 1)
 
     def act(self, inputs, role):
-        if role == "policy":
-            return GaussianMixin.act(self, inputs, role)
+        if role == "policy":            
+            return GaussianMixin.act(self, inputs, role)  # ORIGINAL
         elif role == "value":
             return DeterministicMixin.act(self, inputs, role)
 
     def compute(self, inputs, role):
         if role == "policy":
-            self._shared_output = self.net(inputs["states"])
-            return self.mean_layer(self._shared_output), self.log_std_parameter, {}
+            self.o1 = self.l1(inputs["states"])
+            self.o2 = self.l2(self.o1)
+            self.o3 = self.l3(self.o2)
+            self.o4 = self.l4(self.o3)
+            self.o5 = self.l5(self.o4)
+            self.o6 = self.l6(self.o5)
+            self.o7 = self.mean_layer(self.o6)
+            self.something = self.net(inputs["states"])   #original
+            print(Fore.GREEN + f"[ALIENGO-PPO] O1: {self.o1}" + Style.RESET_ALL)
+            print(Fore.GREEN + f"[ALIENGO-PPO] O2: {self.o2}" + Style.RESET_ALL)
+            print(Fore.GREEN + f"[ALIENGO-PPO] O3: {self.o3}" + Style.RESET_ALL)
+            print(Fore.GREEN + f"[ALIENGO-PPO] O4: {self.o4}" + Style.RESET_ALL)
+            print(Fore.GREEN + f"[ALIENGO-PPO] O5: {self.o5}" + Style.RESET_ALL)
+            print(Fore.GREEN + f"[ALIENGO-PPO] O6: {self.o6}" + Style.RESET_ALL)
+            print(Fore.GREEN + f"[ALIENGO-PPO] O7=mean: {self.o7}" + Style.RESET_ALL)
+            print(Fore.GREEN + f"[ALIENGO-PPO] NET: {self.something}" + Style.RESET_ALL)
+            self._shared_output = self.o6
+            return self.mean_layer(self._shared_output), self.log_std_parameter, {}                 #original
         elif role == "value":
             shared_output = self.net(inputs["states"]) if self._shared_output is None else self._shared_output
             self._shared_output = shared_output # it was "None"

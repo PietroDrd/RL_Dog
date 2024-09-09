@@ -168,7 +168,7 @@ class ObservationsCfg:
         base_ang_vel = ObsTerm(func=mdp.root_ang_vel_w, noise=Unoise(n_min=-0.08, n_max=0.08))    # [rad/s]
             
         ### Joint state 
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.08, n_max=0.08))      # [rad]
+        joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.07, n_max=0.07))      # [rad]
         joint_vel = ObsTerm(func=mdp.joint_vel_rel, noise=Unoise(n_min=-0.04, n_max=0.04))      # [rad/s]
 
         def __post_init__(self):
@@ -290,7 +290,7 @@ class RewardsCfg:
     #### JOINTS PENALITIES
     dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,  weight=-0.9)
     #dof_pos_dev     = RewTerm(func=desired_pose_style_l1, weight=-0.25) # -0.25 strong
-    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.45) 
+    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.4) 
     dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,       weight=-0.02)
 
     undesired_thigh_contacts = RewTerm(

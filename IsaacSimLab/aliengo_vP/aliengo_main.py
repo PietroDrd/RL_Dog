@@ -30,7 +30,7 @@ parser.add_argument("--task",           type=str,   default="AlienGo-v0",  help=
 #parser.add_argument("--headless",       action="store_true",    default=True,  help="GUI or not GUI.")
 parser.add_argument("--video",          action="store_true",    default=HEADLESS,  help="Record videos during training.")
 parser.add_argument("--video_length",   type=int,               default=500,    help="Length of the recorded video (in steps).")
-parser.add_argument("--video_interval", type=int,               default=4000,   help="Interval between video recordings (in steps).")
+parser.add_argument("--video_interval", type=int,               default=10000,   help="Interval between video recordings (in steps).")
 #parser.add_argument("--device",         type=str,               default="cpu",  help="cpu or cuda.")
 #args = parser.parse_args()
 
@@ -82,7 +82,7 @@ def main():
             os.makedirs(log_dir, exist_ok=True)
             video_kwargs = {
                 "video_folder": os.path.join(log_dir, "videos"),
-                "step_trigger": lambda step: step % args_cli.video_interval == 0,
+                "step_trigger": lambda step: step % args_cli.video_interval == 0 and step > 0,
                 "video_length": args_cli.video_length,
                 "disable_logger": True,
             }

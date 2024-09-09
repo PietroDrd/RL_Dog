@@ -12,7 +12,6 @@ class MyModel(nn.Module):
             nn.Linear(256, 128),
             nn.ELU(),
             nn.Linear(128, 12),
-            nn.ELU()
         )
     
     def forward(self, x):
