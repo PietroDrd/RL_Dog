@@ -151,7 +151,7 @@ def main():
                     print("-" * 80)
                     print("[ALIENGO-INFO]: Resetting environment...")
 
-                ### TO TEST FAST THE POLICY
+                ### TO TEST THE POLICY, I'M OVERWRITING
                 obs = torch.tensor([ 0.0000,  0.0000,  0.3927,  1.0000,  0.0000,  0.0000,  0.0000,  0.0000,
                                      0.0000,  00000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,  0.0000,
                                      0.0000,  0.7500,  0.7500,  0.7500,  0.7500, -1.5000, -1.5000, -1.5000,
