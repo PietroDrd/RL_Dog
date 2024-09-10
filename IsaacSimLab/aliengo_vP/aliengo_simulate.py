@@ -96,7 +96,7 @@ def main():
     env_cfg.viewer.resolution = (640, 480)
 
     #path = "/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_29_08_FULL_STATE_v2/checkpoints/best_agent.pt"
-    path = '/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_09_09_11:32/checkpoints/best_agent.pt'
+    path = '/home/rl_sim/RL_Dog/runs/AlienGo_vP_stoptry_09_09_FULL_STATE_v3/checkpoints/best_agent.pt'
     base_dir = os.path.dirname(os.path.dirname(path))
 
     if SIM:
