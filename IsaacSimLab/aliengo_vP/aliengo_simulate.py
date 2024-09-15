@@ -167,6 +167,7 @@ def main():
                 print(Fore.GREEN + f'[ALIENGO-INFO] OBS {obs}' + Style.RESET_ALL)
                 
                 action, _, outputs = agent.agent.act(obs, count, cnt_limit) # obs['policy] if not the provided custom one, OBS instead 
+
                 if flag_1==0:
                     print(Fore.GREEN + f'[ALIENGO-INFO] done 1st act' + Style.RESET_ALL)
                     print("ActionShape: ", action.shape)
@@ -185,7 +186,7 @@ def main():
 
     else:   # EVALUATION
         agent.trainer_seq_eval(path, timesteps=21000)
-        #agent.trainer_par_eval(path)
+        #agent.trainer_par_eval(path, timesteps=21000)
     env.close()
 
 

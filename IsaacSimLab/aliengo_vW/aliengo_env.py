@@ -235,7 +235,7 @@ class EventCfg:
     )
     push_robot = EventTerm(
         func=mdp.push_by_setting_velocity,
-        params={"velocity_range": {"x": (-0.2, 0.2), "y": (-0.2, 0.2), "z": (-0.05, 0.05)}},
+        params={"velocity_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (-0.05, 0.05)}},
         mode="interval",
         interval_range_s=(float(DURATION/2),DURATION-2),
     )
@@ -276,11 +276,11 @@ class RewardsCfg:
         func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.9, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_height = RewTerm(
         func=height_goal,
-        weight=0.4,
+        weight=0.3,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
     )
 
@@ -307,7 +307,7 @@ class RewardsCfg:
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.15,
+        weight=0.2,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),
             "command_name": "base_velocity",
@@ -347,10 +347,10 @@ def random_limit(
 class TerminationsCfg:
     """Termination terms for the MDP."""
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-    bad_orientation = DoneTerm(
-        func=random_limit,
-        params={"limit_angle": 1.48}, # whole robot | radiants: 1.5 ~ 90° Deg
-    )
+    # bad_orientation = DoneTerm(
+    #     func=random_limit,
+    #     params={"limit_angle": 1.48}, # whole robot | radiants: 1.5 ~ 90° Deg
+    # )
 
 
     ### Too strong/angry ###
