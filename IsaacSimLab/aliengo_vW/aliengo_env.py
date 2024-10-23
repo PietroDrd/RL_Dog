@@ -197,10 +197,10 @@ class ObservationsCfg:
         imu_like_data = ObsTerm(
             func=imu_acc_b,
             params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
-            noise=Unoise(n_min=-0.08, n_max=0.08),
+            noise=Unoise(n_min=-0.06, n_max=0.06),
         )
         base_height = ObsTerm(func=mdp.base_pos_z, noise=Unoise(n_min=-0.01, n_max=0.01)) # ideal but still feasible with cameras/lidars, TOF
-        #body_vel = ObsTerm(func=mdp.body_vel_rel, noise=Unoise(n_min=-0.05, n_max=0.05))    # IDEAL
+        body_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.05, n_max=0.05))  # IDEAL
         
         ### Joint state 
         joint_pos = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
@@ -225,20 +225,20 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         params={"pose_range": {"x": (-0.1, 0.0), "z": (-0.34, 0.12), # it was z(-0.22, 12)
                                "roll": (-0.1, 0.1), "pitch": (-0.1, 0.1),}, #cancel if want it planar
-                "velocity_range": {"x": (-0.2, 0.3), "y": (-0.08, 0.08)},}, 
+                "velocity_range": {"x": (-0.2, 0.3), "y": (-0.05, 0.05)},}, 
         mode="reset",
     )
     reset_random_joint = EventTerm(
         func=mdp.reset_joints_by_offset,
-        params={"position_range": (-0.15, 0.15), "velocity_range": (-0.05, 0.05)},
+        params={"position_range": (-0.08, 0.08), "velocity_range": (-0.02, 0.02)},
         mode="reset",
     )
-    push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
-        params={"velocity_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (-0.05, 0.05)}},
-        mode="interval",
-        interval_range_s=(float(DURATION/2),DURATION-2),
-    )
+    #push_robot = EventTerm(
+    #     func=mdp.push_by_setting_velocity,
+    #     params={"velocity_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1), "z": (-0.05, 0.05)}},
+    #     mode="interval",
+    #     interval_range_s=(float(DURATION/2),DURATION-2),
+    # )
 
 
 ### REWARDS ###
@@ -276,20 +276,20 @@ class RewardsCfg:
         func=mdp.track_lin_vel_xy_exp, weight=1.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=0.2, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
-    track_height = RewTerm(
-        func=height_goal,
-        weight=0.3,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
-    )
+    # track_height = RewTerm(
+    #     func=height_goal,
+    #     weight=0.5,
+    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40, "allowance_radius": 0.02}, # "target": 0.35         target not a param of base_pos_z
+    # )
 
     #### BODY PENALITIES
-    # base_height_l2 = RewTerm(
-    #     func=mdp.base_height_l2,
-    #     weight=-0.5,
-    #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
-    # )
+    base_height_l2 = RewTerm(
+        func=mdp.base_height_l2,
+        weight=-0.1,
+        params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.40}, # "target": 0.35         target not a param of base_pos_z
+    )
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.08)
 
     lin_vel_z_l2    = RewTerm(func=mdp.lin_vel_z_l2,     weight=-0.05)
@@ -297,13 +297,13 @@ class RewardsCfg:
     
     #### JOINTS PENALITIES
     dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,    weight=-0.4)
-    #dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-0.0001)
+    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-1.0e-4)
 
-    dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,      weight=-0.00001)
-    dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2,  weight=-1.0e-5)
-    dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,      weight=-2.5e-6)
+    # dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,      weight=-1.0e-5)
+    # dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2,  weight=-1.0e-5)
+    # dof_acc_l2      = RewTerm(func=mdp.joint_acc_l2,      weight=-2.5e-6)
 
-    action_rate_l2  = RewTerm(func=mdp.action_rate_l2,    weight=-0.01)
+    # action_rate_l2  = RewTerm(func=mdp.action_rate_l2,    weight=-0.01)
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
@@ -329,7 +329,9 @@ class RewardsCfg:
 def random_limit(
     env: ManagerBasedRLEnv, limit_angle: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
-    """Terminate when the asset's orientation is too far from the desired orientation limits.
+    """ 
+    Terminate when the asset's orientation is too far from the 
+    desired orientation limits with certain probability.
 
     This is computed by checking the angle between the projected gravity vector and the z-axis.
     """
@@ -340,8 +342,7 @@ def random_limit(
         return torch.acos(-asset.data.projected_gravity_b[:, 2]).abs() > limit_angle
     else:
         return False
-
-
+    return False
 
 @configclass
 class TerminationsCfg:
