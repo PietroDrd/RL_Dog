@@ -296,8 +296,8 @@ class RewardsCfg:
     ang_vel_xy_l2   = RewTerm(func=mdp.ang_vel_xy_l2,    weight=-0.05)
     
     #### JOINTS PENALITIES
-    dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,    weight=-0.7)
-    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-1.0e-3)
+    #dof_pos_limits  = RewTerm(func=mdp.joint_pos_limits,    weight=-0.7)
+    dof_pos_dev     = RewTerm(func=mdp.joint_deviation_l1, weight=-1.0e-2)
 
     # dof_vel_l2      = RewTerm(func=mdp.joint_vel_l2,      weight=-1.0e-5)
     # dof_torques_l2  = RewTerm(func=mdp.joint_torques_l2,  weight=-1.0e-5)
@@ -307,7 +307,7 @@ class RewardsCfg:
 
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
-        weight=0.2,
+        weight=0.3,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_calf"),
             "command_name": "base_velocity",
