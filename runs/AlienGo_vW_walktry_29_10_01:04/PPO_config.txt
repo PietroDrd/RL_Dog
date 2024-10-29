@@ -1,6 +1,6 @@
 ####### SEQUENTIAL TRAINING ####### 
 
-Num envs           ->   4096 
+Num envs           ->   2048 
 -------------------- PPO CONFIG ------------------- 
 Rollouts           ->     24 
 Learning Epochs    ->      6 
