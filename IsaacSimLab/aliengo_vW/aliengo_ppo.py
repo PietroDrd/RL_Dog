@@ -92,16 +92,16 @@ class PPO_v1:
         model_nn_["policy"] = Shared(self.env.observation_space, self.env.action_space, self.device)
         model_nn_["value"] = model_nn_["policy"]
         
-        mem_size = 24 if self.num_envs > 1028 else 32
+        mem_size = 16 if self.num_envs > 1028 else 32
         memory_rndm_ = RandomMemory(memory_size=mem_size, num_envs=self.num_envs, device=self.device)
         
         self.config={
             "rollouts": mem_size,           # 24 if many envs, 32 if few ones
-            "learning_epochs": 6,           # no more than 12
-            "mini_batches": 4,              # min(mem_size * batch_dim / 48, 2)   # 48Gb VRAM of the RTX A6000
+            "learning_epochs": 5,           # no more than 12
+            "mini_batches": 32,              # min(mem_size * batch_dim / 48, 2)   # 48Gb VRAM of the RTX A6000
             "lambda": 0.95,                 # GAE, Generalized Advantage Estimation: bias and variance balance
             "discount_factor": 0.985,       # ~1 Long Term, ~0 Short Term Rewards | Standard: 0.99
-            "entropy_loss_scale": 0.006,    # Entropy Loss: Exploration~1, Eploitation~0 | Standard: [0.0, 0.006]
+            "entropy_loss_scale": 0.008,    # Entropy Loss: Exploration~1, Eploitation~0 | Standard: [0.0, 0.006]
             "learning_rate": 5e-4,
             "learning_rate_scheduler": KLAdaptiveRL,
             "learning_rate_scheduler_kwargs": {"kl_threshold": 0.008},
