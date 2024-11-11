@@ -4,8 +4,9 @@
 - **`aliengo_v1`** ==> Works, not OOP style, not usefull for training, just the env is correct
 - **`aliengo_v2`** ==> Basic WALK training
 - **`aliengo_v3`** ==> STOP policy, IDEAL config (sensors)
-- **`aliengo_v4`** ==> STOP policy, REAL config 
-- **`aliengo_vP`** ==> STOP policy, Full robot STATE config
+- **`aliengo_v4`** ==> STOP policy, REAL config for Sim2Real
+- **`aliengo_vP`** ==> STOP policy, Full robot STATE config for Paper
+- **`aliengo_vW`** ==> WALK policy, IDEAL config
 
 ## Assets: URDF and USD
 URDF are supported and IsaacLab can work directly with them, however is suggested to use USDs
@@ -53,7 +54,7 @@ however it is <u>**STRONGLY SUGGESTED**</u> to import the RobotCFG that you can 
 
 - **`aliengo_ppo.py`** : here you code your algorithm and the **agent** methods / trainers.
 
-- **`aliengo_check.py`** : here you do a similar "main.py" just for the check of the trained robot or the environment.
+- **`aliengo_check.py`** : here you find a similar "main.py" just for the check of the trained robot or the environment.
 
 You will launch **only** the `aliengo_main.py` file: usually in the top lines there are commented the CMD commands to launch your scripts and simulations
 

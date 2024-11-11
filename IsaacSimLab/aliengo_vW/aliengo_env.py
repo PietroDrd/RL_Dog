@@ -293,7 +293,7 @@ class RewardsCfg:
     #### BODY PENALITIES
     base_height_l2 = RewTerm(
         func=mdp.base_height_l2,
-        weight=-0.9,
+        weight=-1.4,
         params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"]), "target_height": 0.38}, # "target": 0.35         target not a param of base_pos_z
     )
     #flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-0.05)
