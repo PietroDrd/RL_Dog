@@ -4,13 +4,13 @@ This script demonstrates the environment for a quadruped robot AlienGo.
     conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vW/aliengo_main.py --num_envs 512
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vW_ideal/aliengo_main.py --num_envs 512
 
     #IF HEADLESS:
     conda activate isaacenv_
     cd
     cd IsaacLab_
-    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vW/aliengo_main.py --num_envs 2048 --headless --enable_cameras
+    ./isaaclab.sh -p /home/rl_sim/RL_Dog/IsaacSimLab/aliengo_vW_ideal/aliengo_main.py --num_envs 2048 --headless --enable_cameras
 
 
 Launch Isaac Sim Simulator first.
@@ -22,7 +22,7 @@ HEADLESS = True
 from omni.isaac.lab.app import AppLauncher
 
 import argparse
-parser = argparse.ArgumentParser(description='AlienGo_vW Environment Configuration')
+parser = argparse.ArgumentParser(description='AlienGo_vW_ideal Environment Configuration')
 parser.add_argument('--num_envs',       type=int,   default=128,            help='Number of environments')
 parser.add_argument('--env_spacing',    type=float, default=2.5,           help='Environment spacing')
 parser.add_argument('--walk',           type=int,   default=0,             help='ask to Walk or not (1,0)')
@@ -81,7 +81,7 @@ def main():
         if args_cli.video:
             env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
             timestamp = datetime.datetime.now().strftime("%d_%m_%H:%M")
-            log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_vW_walktry_{timestamp}/"
+            log_dir = f"/home/rl_sim/RL_Dog/runs/AlienGo_vW_ideal_{timestamp}/"
             os.makedirs(log_dir, exist_ok=True)
             video_kwargs = {
                 "video_folder": os.path.join(log_dir, "videos"),
