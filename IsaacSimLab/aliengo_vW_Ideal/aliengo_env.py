@@ -194,13 +194,19 @@ class ObservationsCfg:
         velocity_command = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
         
         ### Robot State (What we have)
-        imu_like_data = ObsTerm(
-            func=imu_acc_b,
-            params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
-            noise=Unoise(n_min=-0.06, n_max=0.06),
+        # imu_like_data = ObsTerm(
+        #     func=imu_acc_b,
+        #     params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])},
+        #     noise=Unoise(n_min=-0.06, n_max=0.06),
+        # )
+        base_height  = ObsTerm(func=mdp.base_pos_z, noise=Unoise(n_min=-0.008, n_max=0.008)) # ideal but still feasible with cameras/lidars, TOF
+        body_lin_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.05, n_max=0.05))  # IDEAL
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel, noise=Unoise(n_min=-0.02, n_max=0.02))
+        
+        projected_gravity = ObsTerm(
+            func=mdp.projected_gravity,
+            noise=Unoise(n_min=-0.05, n_max=0.05),
         )
-        base_height = ObsTerm(func=mdp.base_pos_z, noise=Unoise(n_min=-0.01, n_max=0.01)) # ideal but still feasible with cameras/lidars, TOF
-        body_vel = ObsTerm(func=mdp.base_lin_vel, noise=Unoise(n_min=-0.05, n_max=0.05))  # IDEAL
         
         ### Body Forces
         # body_wrench = ObsTerm(func=mdp.body_incoming_wrench, params={"asset_cfg": SceneEntityCfg("robot", body_names=["base"])})
